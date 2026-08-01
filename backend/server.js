@@ -19,8 +19,13 @@ const app = express();
 
 app.use(express.json());
 
+// ✅ UPDATED CORS CONFIGURATION - Allow Vercel frontend + local development
 app.use(cors({
-  origin: ["http://localhost:5173", "http://localhost:5174"], // Allow both ports
+  origin: [
+    "http://localhost:5173", 
+    "http://localhost:5174",
+    "https://khoonn-sigma.vercel.app" // Your live Vercel frontend
+  ],
   credentials: true,
 }));
 
@@ -37,13 +42,12 @@ app.use("/api/hospital", hospitalRoutes);
 // 🗄️ DB Connection (WITH IPv4 FIX)
 mongoose
   .connect(process.env.MONGO_URI, {
-    serverSelectionTimeoutMS: 5000, // Timeout after 5s instead of 30s
-    family: 4 // 👈 FORCES IPv4 (Fixes 90% of queryTxt ETIMEOUT errors)
+    serverSelectionTimeoutMS: 5000,
+    family: 4 // 👈 FORCES IPv4
   })
   .then(() => console.log("MongoDB Connected ✅"))
   .catch((err) => {
     console.error("MongoDB Error ❌", err.message);
-    // Optional: process.exit(1); // Uncomment if you want the server to crash on DB failure
   });
 
 const PORT = process.env.PORT || 5000;
