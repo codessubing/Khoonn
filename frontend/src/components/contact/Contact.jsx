@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   Phone,
   Mail,
@@ -15,6 +15,32 @@ import Header from "../Header";
 import Footer from "../Footer";
 
 const Contact = () => {
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    message: "",
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+
+    // TODO: Replace with your actual API call (e.g., Formspree, EmailJS, or custom backend)
+    setTimeout(() => {
+      console.log("Form submitted:", formData);
+      setIsSubmitting(false);
+      setFormData({ name: "", email: "", phone: "", message: "" });
+      alert("Thank you! Your message has been sent successfully.");
+    }, 1500);
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-background text-foreground">
       <Header />
@@ -64,7 +90,7 @@ const Contact = () => {
                 <MapPin className="w-6 h-6 text-primary" />
               </div>
               <h3 className="text-lg font-semibold mb-2">Head Office</h3>
-              <p className="text-muted-foreground">Bhalwari , Rupandehi</p>
+              <p className="text-muted-foreground">Bhalwari, Rupandehi</p>
               <p className="text-sm text-muted-foreground mt-1">Nepal - 36500</p>
             </div>
           </div>
@@ -120,6 +146,7 @@ const Contact = () => {
                   <a
                     key={i}
                     href="#"
+                    aria-label="Social media link"
                     className="w-10 h-10 rounded-full border border-border bg-background flex items-center justify-center text-muted-foreground hover:text-primary hover:border-primary/50 transition-all"
                   >
                     <Icon className="w-5 h-5" />
@@ -129,55 +156,74 @@ const Contact = () => {
             </div>
 
             {/* FORM - Clean & Minimal */}
-            <form className="bg-card border border-border rounded-2xl p-8 shadow-sm space-y-6">
+            <form onSubmit={handleSubmit} className="bg-card border border-border rounded-2xl p-8 shadow-sm space-y-6">
               {/* Name */}
               <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">Full Name</label>
+                <label htmlFor="name" className="text-sm font-medium text-foreground">Full Name</label>
                 <div className="relative">
                   <User className="absolute left-3 top-3 w-5 h-5 text-muted-foreground" />
                   <input  
+                    id="name"
+                    name="name"
                     type="text"
+                    required
+                    value={formData.name}
+                    onChange={handleChange}
                     placeholder="Enter your name"
-                    className="input-minimal pl-10"
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2 pl-10 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                   />
                 </div>
               </div>
 
               {/* Email */}
               <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">Email Address</label>
+                <label htmlFor="email" className="text-sm font-medium text-foreground">Email Address</label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-3 w-5 h-5 text-muted-foreground" />
                   <input  
+                    id="email"
+                    name="email"
                     type="email"
+                    required
+                    value={formData.email}
+                    onChange={handleChange}
                     placeholder="Enter your email"
-                    className="input-minimal pl-10"
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2 pl-10 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                   />
                 </div>
               </div>
 
               {/* Phone */}
               <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">Phone Number</label>
+                <label htmlFor="phone" className="text-sm font-medium text-foreground">Phone Number</label>
                 <div className="relative">
                   <Phone className="absolute left-3 top-3 w-5 h-5 text-muted-foreground" />
                   <input  
-                    type="text"
+                    id="phone"
+                    name="phone"
+                    type="tel"
+                    value={formData.phone}
+                    onChange={handleChange}
                     placeholder="Enter phone number"
-                    className="input-minimal pl-10"
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2 pl-10 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                   />
                 </div>
               </div>
 
               {/* Message */}
               <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">Message</label>
+                <label htmlFor="message" className="text-sm font-medium text-foreground">Message</label>
                 <div className="relative">
                   <MessageSquare className="absolute left-3 top-3 w-5 h-5 text-muted-foreground" />
                   <textarea
+                    id="message"
+                    name="message"
                     rows={4}
+                    required
+                    value={formData.message}
+                    onChange={handleChange}
                     placeholder="Write your message here..."
-                    className="input-minimal pl-10 resize-none"
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2 pl-10 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-none"
                   ></textarea>
                 </div>
               </div>
@@ -185,10 +231,17 @@ const Contact = () => {
               {/* Submit */}
               <button
                 type="submit"
-                className="btn-advanced w-full"
+                disabled={isSubmitting}
+                className="inline-flex w-full items-center justify-center rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground ring-offset-background transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
               >
-                <Send className="w-4 h-4" />
-                Send Message
+                {isSubmitting ? (
+                  "Sending..."
+                ) : (
+                  <>
+                    <Send className="mr-2 w-4 h-4" />
+                    Send Message
+                  </>
+                )}
               </button>
             </form>
           </div>
