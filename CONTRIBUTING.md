@@ -12,7 +12,57 @@ This creates your own copy.
 
 
 ```bash
-git clone 
+git clone # 🩸 Khoonn – Blood Bank Management System (BBMS)
+
+Khoonn is a modern, full-stack **Blood Bank Management System** designed to digitize and streamline blood donation, hospital requests, and real-time inventory tracking—replacing error-prone manual processes with a secure, centralized platform.
+
+## 🚨 Problem Statement
+
+Many blood banks still rely on paper records, spreadsheets, and disconnected communication, leading to:
+- ❌ No real-time visibility of blood availability  
+- ⏳ Critical delays during emergencies  
+- 📝 Frequent data entry errors  
+- 👥 Difficulty managing donors, patients, and hospitals  
+- 🧩 Lack of a unified system  
+
+## ✅ Our Solution
+
+Khoonn provides an **all-in-one, secure, and responsive web platform** with:
+
+- 👤 Donor registration & profile management  
+- 🏥 Hospital request creation & status tracking  
+- 📊 Real-time blood inventory monitoring  
+- 🔒 JWT-based authentication & role-based access  
+- 🧠 RESTful backend APIs (Node.js + Express)  
+- 🎨 Clean, responsive UI (React + Tailwind CSS)  
+
+Built to ensure **faster response times**, **zero data loss**, and **seamless coordination** between donors, hospitals, and admins.
+
+---
+
+## 🛠️ Tech Stack
+
+### Frontend
+- React.js
+- React Router
+- Axios
+- Tailwind CSS
+
+### Backend
+- Node.js
+- Express.js
+- MongoDB + Mongoose
+- JWT Authentication
+- bcrypt (password hashing)
+
+---
+
+## 🚀 Getting Started
+
+### 1. Clone the Repository
+```bash
+git clone https://github.com/codessubing/Khoonn.git
+cd Khoonn
 ```
 
 ## 3. Create a New Branch
