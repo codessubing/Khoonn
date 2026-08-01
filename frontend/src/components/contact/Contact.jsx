@@ -44,7 +44,7 @@ const Contact = () => {
                 <Phone className="w-6 h-6 text-primary" />
               </div>
               <h3 className="text-lg font-semibold mb-2">Emergency Helpline</h3>
-              <p className="text-muted-foreground">+91 98765 43210</p>
+              <p className="text-muted-foreground">+977 98765 43210</p>
               <p className="text-sm text-muted-foreground mt-1">Available 24/7</p>
             </div>
 
@@ -64,8 +64,8 @@ const Contact = () => {
                 <MapPin className="w-6 h-6 text-primary" />
               </div>
               <h3 className="text-lg font-semibold mb-2">Head Office</h3>
-              <p className="text-muted-foreground">Navi Mumbai, Maharashtra</p>
-              <p className="text-sm text-muted-foreground mt-1">India - 410206</p>
+              <p className="text-muted-foreground">Bhalwari , Rupandehi</p>
+              <p className="text-sm text-muted-foreground mt-1">Nepal - 36500</p>
             </div>
           </div>
         </section>
