@@ -14,33 +14,69 @@ const adminSchema = new mongoose.Schema(
       unique: true,
       lowercase: true,
       trim: true,
+      match: [/^\S+@\S+\.\S+$/, "Please enter a valid email address"], // Added email regex validation
     },
     password: {
       type: String,
       required: [true, "Password is required"],
       minlength: [6, "Password must be at least 6 characters"],
-      select: false,
+      select: false, // Never return password in queries by default
     },
     role: {
       type: String,
       enum: ["admin", "superadmin"],
       default: "admin",
     },
-    lastLogin: Date,
-    isActive: { type: Boolean, default: true },
+    lastLogin: { 
+      type: Date, 
+      default: null 
+    },
+    isActive: { 
+      type: Boolean, 
+      default: true 
+    },
   },
-  { timestamps: true }
+  { 
+    timestamps: true,
+    // ✅ SECURITY ENHANCEMENT: Automatically strip sensitive fields from JSON responses
+    toJSON: { 
+      transform: function (doc, ret) {
+        delete ret.password;
+        delete ret.__v;
+        return ret;
+      }
+    },
+    toObject: {
+      transform: function (doc, ret) {
+        delete ret.password;
+        delete ret.__v;
+        return ret;
+      }
+    }
+  }
 );
 
-adminSchema.pre("save", async function(next) {
+// Hash password before saving
+adminSchema.pre("save", async function (next) {
+  // Only hash the password if it has been modified (or is new)
   if (!this.isModified("password")) return next();
-  this.password = await bcrypt.hash(this.password.trim(), 12);
-  next();
+  
+  try {
+    const salt = await bcrypt.genSalt(12);
+    this.password = await bcrypt.hash(this.password.trim(), salt);
+    next();
+  } catch (error) {
+    next(error);
+  }
 });
 
-// Compare password
-adminSchema.methods.comparePassword = async function(candidatePassword) {
-  return bcrypt.compare(candidatePassword.trim(), this.password);
+// Compare password method
+adminSchema.methods.comparePassword = async function (candidatePassword) {
+  try {
+    return await bcrypt.compare(candidatePassword.trim(), this.password);
+  } catch (error) {
+    throw new Error("Password comparison failed");
+  }
 };
 
 export default mongoose.model("Admin", adminSchema);

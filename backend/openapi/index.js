@@ -1,23 +1,42 @@
 import swaggerJsDoc from 'swagger-jsdoc';
 import swaggerUi from 'swagger-ui-express';
 
-// swagger config
+// Swagger config
 const swaggerOptions = {
   definition: {
     openapi: '3.0.0',
     info: {
-      title: 'BBMS',
-      version: 'rolling',
-      description: 'Blood Bank Management System (BBMS) RESTful api',
+      title: 'Blood Bank Management System (BBMS) API',
+      version: '1.0.0',
+      description: 'RESTful API documentation for the Blood Bank Management System',
+    },
+    servers: [
+      {
+        url: process.env.BASE_URL || 'http://localhost:5000',
+        description: 'Development Server',
+      },
+    ],
+    components: {
+      securitySchemes: {
+        bearerAuth: {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+        },
+      },
     },
   },
-  apis: ['./openapi/*.js'],
+  // ✅ CRITICAL FIX: Tell Swagger to look in routes and controllers for @swagger comments
+  apis: [
+    './routes/*.js', 
+    './controllers/*.js'
+  ],
 };
 
-// setup 
+// Setup
 const swaggerDocs = swaggerJsDoc(swaggerOptions);
 
 export {
   swaggerDocs,
   swaggerUi
-}
+};

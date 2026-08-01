@@ -12,12 +12,12 @@ import {
   Filter,
   Heart,
   Shield,
-  Clock,
   ChevronDown,
   ChevronUp,
   PhoneCall,
   MessageCircle,
-  Mail as MailIcon
+  Mail as MailIcon,
+  X,
 } from "lucide-react";
 
 const DonorDirectory = () => {
@@ -28,7 +28,7 @@ const DonorDirectory = () => {
     bloodGroup: "all",
     city: "all",
     availability: "all",
-    sortBy: "lastDonation"
+    sortBy: "lastDonation",
   });
   const [showFilters, setShowFilters] = useState(false);
   const [selectedDonor, setSelectedDonor] = useState(null);
@@ -36,10 +36,9 @@ const DonorDirectory = () => {
   const [stats, setStats] = useState({
     total: 0,
     available: 0,
-    rareBlood: 0
+    rareBlood: 0,
   });
 
-  // Fetch all donors
   const fetchDonors = async () => {
     setLoading(true);
     try {
@@ -49,13 +48,12 @@ const DonorDirectory = () => {
         bloodGroup: filters.bloodGroup,
         city: filters.city,
         availability: filters.availability,
-        sortBy: filters.sortBy
+        sortBy: filters.sortBy,
       });
 
-      const res = await axios.get(
-        `/api/hospital/donors?${queryParams}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const res = await axios.get(`/api/hospital/donors?${queryParams}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
       setDonors(res.data.donors || []);
       setStats(res.data.stats || { total: 0, available: 0, rareBlood: 0 });
@@ -71,12 +69,9 @@ const DonorDirectory = () => {
     fetchDonors();
   }, [filters, searchTerm]);
 
-  // Contact donor
   const contactDonor = (donor) => {
     setSelectedDonor(donor);
     setShowContactModal(true);
-    
-    // Log contact attempt in history
     logContactAttempt(donor._id);
   };
 
@@ -84,7 +79,7 @@ const DonorDirectory = () => {
     try {
       const token = localStorage.getItem("token");
       await axios.post(
-        `/api/hopital/donors/${donorId}/contact`,
+        `/api/hospital/donors/${donorId}/contact`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -93,117 +88,165 @@ const DonorDirectory = () => {
     }
   };
 
-  // Check donor availability
-  const isDonorAvailable = (lastDonationDate) => {
-    if (!lastDonationDate) return true;
-    const lastDonation = new Date(lastDonationDate);
-    const threeMonthsAgo = new Date();
-    threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
-    return lastDonation < threeMonthsAgo;
-  };
-
   const getAvailabilityStatus = (lastDonationDate) => {
-    if (!lastDonationDate) return { status: "available", text: "Available", color: "bg-green-100 text-green-800" };
-    
+    if (!lastDonationDate)
+      return {
+        status: "available",
+        text: "Available",
+        color: "bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20",
+      };
+
     const lastDonation = new Date(lastDonationDate);
     const threeMonthsAgo = new Date();
     threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
-    
+
     if (lastDonation < threeMonthsAgo) {
-      return { status: "available", text: "Available", color: "bg-green-100 text-green-800" };
+      return {
+        status: "available",
+        text: "Available",
+        color: "bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20",
+      };
     }
-    
+
     const nextDonationDate = new Date(lastDonation);
     nextDonationDate.setMonth(nextDonationDate.getMonth() + 3);
-    const daysUntilAvailable = Math.ceil((nextDonationDate - new Date()) / (1000 * 60 * 60 * 24));
-    
+    const daysUntilAvailable = Math.ceil(
+      (nextDonationDate - new Date()) / (1000 * 60 * 60 * 24)
+    );
+
     if (daysUntilAvailable <= 7) {
-      return { status: "soon", text: `Available in ${daysUntilAvailable} days`, color: "bg-yellow-100 text-yellow-800" };
+      return {
+        status: "soon",
+        text: `Available in ${daysUntilAvailable} days`,
+        color: "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20",
+      };
     }
-    
-    return { status: "unavailable", text: "Recently donated", color: "bg-red-100 text-red-800" };
+
+    return {
+      status: "unavailable",
+      text: "Recently donated",
+      color: "bg-destructive/10 text-destructive border-destructive/20",
+    };
   };
 
   const getTimeSinceLastDonation = (lastDonationDate) => {
     if (!lastDonationDate) return "Never donated";
-    
+
     const lastDonation = new Date(lastDonationDate);
     const now = new Date();
     const diffTime = Math.abs(now - lastDonation);
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
+
     if (diffDays === 0) return "Today";
     if (diffDays === 1) return "Yesterday";
     if (diffDays < 30) return `${diffDays} days ago`;
-    
+
     const diffMonths = Math.floor(diffDays / 30);
-    return `${diffMonths} month${diffMonths > 1 ? 's' : ''} ago`;
+    return `${diffMonths} month${diffMonths > 1 ? "s" : ""} ago`;
   };
 
   const isRareBloodGroup = (bloodGroup) => {
-    return ['O-', 'AB-', 'B-', 'A-'].includes(bloodGroup);
+    return ["O-", "AB-", "B-", "A-"].includes(bloodGroup);
   };
 
-  // Blood group options
-  const bloodGroups = ['all', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
+  const bloodGroups = ["all", "A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
+
+  const getBloodGroupBadgeClass = (bg) => {
+    const map = {
+      "O-": "bg-red-500/10 text-red-700 dark:text-red-400 border-red-500/20",
+      "O+": "bg-orange-500/10 text-orange-700 dark:text-orange-400 border-orange-500/20",
+      "A-": "bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20",
+      "A+": "bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20",
+      "B-": "bg-purple-500/10 text-purple-700 dark:text-purple-400 border-purple-500/20",
+      "B+": "bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 border-indigo-500/20",
+      "AB-": "bg-pink-500/10 text-pink-700 dark:text-pink-400 border-pink-500/20",
+      "AB+": "bg-cyan-500/10 text-cyan-700 dark:text-cyan-400 border-cyan-500/20",
+    };
+    return map[bg] || "bg-muted text-muted-foreground border-border";
+  };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50 to-white p-6">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen bg-background p-4 sm:p-6 lg:p-8">
+      <div className="max-w-7xl mx-auto space-y-8">
         {/* Header */}
-        <div className="mb-8">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div className="flex items-center gap-4">
+            <div className="p-2.5 rounded-xl bg-primary/10">
+              <Heart className="w-6 h-6 text-primary" />
+            </div>
             <div>
-              <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-3">
-                <div className="p-2 bg-red-100 rounded-xl">
-                  <Heart className="w-6 h-6 text-red-600" />
-                </div>
+              <h1 className="text-2xl font-bold tracking-tight text-foreground">
                 Donor Directory
               </h1>
-              <p className="text-gray-600 mt-1">Find and contact blood donors for emergencies</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                Find and contact blood donors for emergencies
+              </p>
             </div>
           </div>
+        </div>
 
-          {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div className="bg-white p-6 rounded-2xl shadow-lg border-l-4 border-l-red-400">
-              <div className="text-2xl font-bold text-gray-800">{stats.total}</div>
-              <div className="text-sm text-gray-600">Total Donors</div>
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="bg-card border border-border rounded-xl p-5">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2 rounded-lg bg-primary/10">
+                <User className="w-4 h-4 text-primary" />
+              </div>
+              <span className="text-xs font-medium text-muted-foreground">
+                Total Donors
+              </span>
             </div>
-            <div className="bg-white p-6 rounded-2xl shadow-lg border-l-4 border-l-green-400">
-              <div className="text-2xl font-bold text-green-600">{stats.available}</div>
-              <div className="text-sm text-gray-600">Available Now</div>
+            <div className="text-2xl font-bold tracking-tight text-foreground">
+              {stats.total}
             </div>
-            <div className="bg-white p-6 rounded-2xl shadow-lg border-l-4 border-l-purple-400">
-              <div className="text-2xl font-bold text-purple-600">{stats.rareBlood}</div>
-              <div className="text-sm text-gray-600">Rare Blood Types</div>
+          </div>
+          <div className="bg-card border border-border rounded-xl p-5">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2 rounded-lg bg-green-500/10">
+                <Heart className="w-4 h-4 text-green-600 dark:text-green-400" />
+              </div>
+              <span className="text-xs font-medium text-muted-foreground">
+                Available Now
+              </span>
+            </div>
+            <div className="text-2xl font-bold tracking-tight text-foreground">
+              {stats.available}
+            </div>
+          </div>
+          <div className="bg-card border border-border rounded-xl p-5">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2 rounded-lg bg-purple-500/10">
+                <Shield className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+              </div>
+              <span className="text-xs font-medium text-muted-foreground">
+                Rare Blood Types
+              </span>
+            </div>
+            <div className="text-2xl font-bold tracking-tight text-foreground">
+              {stats.rareBlood}
             </div>
           </div>
         </div>
 
         {/* Search and Filters */}
-        <div className="bg-white rounded-2xl shadow-lg border border-red-100 p-6 mb-6">
+        <div className="bg-card border border-border rounded-xl p-4 sm:p-5">
           <div className="flex flex-col lg:flex-row gap-4">
-            {/* Search */}
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-                <input
-                  type="text"
-                  placeholder="Search donors by name, email, phone, or city..."
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <input
+                type="text"
+                placeholder="Search donors by name, email, phone, or city..."
+                className="input-minimal pl-10"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
             </div>
 
-            {/* Filter Toggle */}
             <button
               onClick={() => setShowFilters(!showFilters)}
-              className="lg:w-48 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-3 rounded-lg transition-colors flex items-center justify-center gap-2"
+              className="btn-ghost flex items-center justify-center gap-2 min-w-[120px]"
             >
-              <Filter size={18} />
+              <Filter size={16} />
               Filters
               {showFilters ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
             </button>
@@ -211,33 +254,37 @@ const DonorDirectory = () => {
 
           {/* Expanded Filters */}
           {showFilters && (
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4 pt-4 border-t border-gray-200">
-              {/* Blood Group Filter */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-4 pt-4 border-t border-border">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-foreground mb-1.5">
                   Blood Group
                 </label>
                 <select
                   value={filters.bloodGroup}
-                  onChange={(e) => setFilters({...filters, bloodGroup: e.target.value})}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                  onChange={(e) =>
+                    setFilters({ ...filters, bloodGroup: e.target.value })
+                  }
+                  className="input-minimal w-full"
                 >
                   <option value="all">All Blood Groups</option>
-                  {bloodGroups.filter(bg => bg !== 'all').map(bg => (
-                    <option key={bg} value={bg}>{bg}</option>
-                  ))}
+                  {bloodGroups
+                    .filter((bg) => bg !== "all")
+                    .map((bg) => (
+                      <option key={bg} value={bg}>
+                        {bg}
+                      </option>
+                    ))}
                 </select>
               </div>
 
-              {/* City Filter */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-foreground mb-1.5">
                   City
                 </label>
                 <select
                   value={filters.city}
-                  onChange={(e) => setFilters({...filters, city: e.target.value})}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                  onChange={(e) => setFilters({ ...filters, city: e.target.value })}
+                  className="input-minimal w-full"
                 >
                   <option value="all">All Cities</option>
                   <option value="Mumbai">Mumbai</option>
@@ -250,15 +297,16 @@ const DonorDirectory = () => {
                 </select>
               </div>
 
-              {/* Availability Filter */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-foreground mb-1.5">
                   Availability
                 </label>
                 <select
                   value={filters.availability}
-                  onChange={(e) => setFilters({...filters, availability: e.target.value})}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                  onChange={(e) =>
+                    setFilters({ ...filters, availability: e.target.value })
+                  }
+                  className="input-minimal w-full"
                 >
                   <option value="all">All Donors</option>
                   <option value="available">Available Now</option>
@@ -266,15 +314,14 @@ const DonorDirectory = () => {
                 </select>
               </div>
 
-              {/* Sort By */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-foreground mb-1.5">
                   Sort By
                 </label>
                 <select
                   value={filters.sortBy}
-                  onChange={(e) => setFilters({...filters, sortBy: e.target.value})}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                  onChange={(e) => setFilters({ ...filters, sortBy: e.target.value })}
+                  className="input-minimal w-full"
                 >
                   <option value="lastDonation">Last Donation</option>
                   <option value="name">Name</option>
@@ -288,88 +335,97 @@ const DonorDirectory = () => {
 
         {/* Donors Grid */}
         {loading ? (
-          <div className="flex justify-center items-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600"></div>
-            <span className="ml-3 text-gray-600">Loading donors...</span>
+          <div className="flex justify-center items-center py-16 bg-card border border-border rounded-xl">
+            <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mr-3" />
+            <span className="text-muted-foreground font-medium">Loading donors...</span>
           </div>
         ) : donors.length === 0 ? (
-          <div className="text-center py-12 bg-white rounded-2xl shadow-lg border border-red-100">
-            <div className="text-gray-400 mb-4">
-              <User size={48} className="mx-auto" />
+          <div className="text-center py-16 bg-card border border-border rounded-xl">
+            <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4 text-muted-foreground/50">
+              <User size={32} />
             </div>
-            <h3 className="text-lg font-medium text-gray-800 mb-2">No donors found</h3>
-            <p className="text-gray-600">
-              {searchTerm || filters.bloodGroup !== 'all' || filters.city !== 'all' 
-                ? 'Try adjusting your search filters' 
-                : 'No donors registered in the system'}
+            <h3 className="text-lg font-semibold text-foreground mb-2">
+              No donors found
+            </h3>
+            <p className="text-sm text-muted-foreground max-w-sm mx-auto">
+              {searchTerm || filters.bloodGroup !== "all" || filters.city !== "all"
+                ? "Try adjusting your search filters"
+                : "No donors registered in the system"}
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {donors.map((donor) => {
               const availability = getAvailabilityStatus(donor.lastDonationDate);
               const isRare = isRareBloodGroup(donor.bloodGroup);
-              
+
               return (
                 <div
                   key={donor._id}
-                  className="bg-white rounded-2xl shadow-lg border border-red-100 p-6 hover:shadow-xl transition-all duration-300"
+                  className="bg-card border border-border rounded-xl p-5 hover:shadow-md transition-all duration-300 flex flex-col"
                 >
                   {/* Donor Header */}
                   <div className="flex justify-between items-start mb-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
-                        <User className="w-6 h-6 text-red-600" />
+                      <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center shrink-0">
+                        <User className="w-5 h-5 text-primary" />
                       </div>
-                      <div>
-                        <h3 className="font-semibold text-gray-800 text-lg">{donor.fullName}</h3>
+                      <div className="min-w-0">
+                        <h3 className="font-semibold text-foreground text-base truncate">
+                          {donor.fullName}
+                        </h3>
                         <div className="flex items-center gap-2 mt-1">
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            donor.bloodGroup === 'O-' ? 'bg-red-100 text-red-800 border border-red-200' :
-                            donor.bloodGroup === 'O+' ? 'bg-orange-100 text-orange-800 border border-orange-200' :
-                            donor.bloodGroup === 'A-' ? 'bg-blue-100 text-blue-800 border border-blue-200' :
-                            donor.bloodGroup === 'A+' ? 'bg-green-100 text-green-800 border border-green-200' :
-                            donor.bloodGroup === 'B-' ? 'bg-purple-100 text-purple-800 border border-purple-200' :
-                            donor.bloodGroup === 'B+' ? 'bg-indigo-100 text-indigo-800 border border-indigo-200' :
-                            donor.bloodGroup === 'AB-' ? 'bg-pink-100 text-pink-800 border border-pink-200' :
-                            'bg-gray-100 text-gray-800 border border-gray-200'
-                          }`}>
+                          <span
+                            className={`px-2 py-0.5 rounded-full text-xs font-bold border ${getBloodGroupBadgeClass(
+                              donor.bloodGroup
+                            )}`}
+                          >
                             {donor.bloodGroup}
                           </span>
                           {isRare && (
-                            <Shield size={14} className="text-purple-500" />
+                            <Shield size={14} className="text-purple-500 shrink-0" />
                           )}
                         </div>
                       </div>
                     </div>
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${availability.color}`}>
+                    <span
+                      className={`px-2.5 py-1 rounded-full text-xs font-medium border shrink-0 ${availability.color}`}
+                    >
                       {availability.text}
                     </span>
                   </div>
 
                   {/* Donor Details */}
-                  <div className="space-y-3 mb-4">
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                      <Phone size={14} className="text-red-500 flex-shrink-0" />
-                      <span className="font-medium">{donor.phone}</span>
+                  <div className="space-y-2.5 mb-5 flex-1">
+                    <div className="flex items-center gap-2.5 text-sm text-muted-foreground">
+                      <Phone size={14} className="text-primary shrink-0" />
+                      <span className="text-foreground font-medium">
+                        {donor.phone}
+                      </span>
                     </div>
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                      <Mail size={14} className="text-red-500 flex-shrink-0" />
-                      <span>{donor.email}</span>
+                    <div className="flex items-center gap-2.5 text-sm text-muted-foreground">
+                      <Mail size={14} className="text-primary shrink-0" />
+                      <span className="truncate">{donor.email}</span>
                     </div>
                     {donor.address?.city && (
-                      <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <MapPin size={14} className="text-red-500 flex-shrink-0" />
-                        <span>{donor.address.city}, {donor.address.state}</span>
+                      <div className="flex items-center gap-2.5 text-sm text-muted-foreground">
+                        <MapPin size={14} className="text-primary shrink-0" />
+                        <span className="truncate">
+                          {donor.address.city}, {donor.address.state}
+                        </span>
                       </div>
                     )}
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                      <Calendar size={14} className="text-red-500 flex-shrink-0" />
-                      <span>Last donation: {getTimeSinceLastDonation(donor.lastDonationDate)}</span>
+                    <div className="flex items-center gap-2.5 text-sm text-muted-foreground">
+                      <Calendar size={14} className="text-primary shrink-0" />
+                      <span>
+                        Last: {getTimeSinceLastDonation(donor.lastDonationDate)}
+                      </span>
                     </div>
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                      <Droplet size={14} className="text-red-500 flex-shrink-0" />
-                      <span>Total donations: {donor.donationHistory?.length || 0}</span>
+                    <div className="flex items-center gap-2.5 text-sm text-muted-foreground">
+                      <Droplet size={14} className="text-primary shrink-0" />
+                      <span>
+                        Total: {donor.donationHistory?.length || 0} donations
+                      </span>
                     </div>
                   </div>
 
@@ -377,7 +433,7 @@ const DonorDirectory = () => {
                   <button
                     onClick={() => contactDonor(donor)}
                     disabled={availability.status === "unavailable"}
-                    className="w-full bg-red-600 hover:bg-red-700 disabled:bg-gray-400 text-white py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
+                    className="btn-advanced w-full justify-center disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <PhoneCall size={16} />
                     Contact Donor
@@ -390,66 +446,84 @@ const DonorDirectory = () => {
 
         {/* Contact Modal */}
         {showContactModal && selectedDonor && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6">
-              <h3 className="text-xl font-semibold text-gray-800 mb-2">
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+            <div className="bg-card border border-border rounded-2xl shadow-xl max-w-md w-full p-6 relative">
+              <button
+                onClick={() => setShowContactModal(false)}
+                className="absolute top-4 right-4 p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <X size={18} />
+              </button>
+
+              <h3 className="text-xl font-bold tracking-tight text-foreground mb-2 pr-6">
                 Contact Donor
               </h3>
-              <p className="text-gray-600 mb-6">Choose how you'd like to contact {selectedDonor.fullName}</p>
-              
+              <p className="text-sm text-muted-foreground mb-6">
+                Choose how you'd like to contact {selectedDonor.fullName}
+              </p>
+
               <div className="space-y-3">
-                {/* Phone Call */}
                 <a
                   href={`tel:${selectedDonor.phone}`}
-                  className="w-full bg-green-600 hover:bg-green-700 text-white py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-3"
+                  className="flex items-center gap-3 p-3 rounded-lg bg-green-600 hover:bg-green-700 text-white transition-colors"
                 >
-                  <PhoneCall size={20} />
+                  <PhoneCall size={20} className="shrink-0" />
                   <div className="text-left">
-                    <div className="font-semibold">Call Now</div>
-                    <div className="text-sm opacity-90">{selectedDonor.phone}</div>
+                    <div className="font-semibold text-sm">Call Now</div>
+                    <div className="text-xs opacity-90">{selectedDonor.phone}</div>
                   </div>
                 </a>
 
-                {/* SMS */}
                 <a
                   href={`sms:${selectedDonor.phone}`}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-3"
+                  className="flex items-center gap-3 p-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-colors"
                 >
-                  <MessageCircle size={20} />
+                  <MessageCircle size={20} className="shrink-0" />
                   <div className="text-left">
-                    <div className="font-semibold">Send SMS</div>
-                    <div className="text-sm opacity-90">Quick message</div>
+                    <div className="font-semibold text-sm">Send SMS</div>
+                    <div className="text-xs opacity-90">Quick message</div>
                   </div>
                 </a>
 
-                {/* Email */}
                 <a
                   href={`mailto:${selectedDonor.email}`}
-                  className="w-full bg-purple-600 hover:bg-purple-700 text-white py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-3"
+                  className="flex items-center gap-3 p-3 rounded-lg bg-purple-600 hover:bg-purple-700 text-white transition-colors"
                 >
-                  <MailIcon size={20} />
+                  <MailIcon size={20} className="shrink-0" />
                   <div className="text-left">
-                    <div className="font-semibold">Send Email</div>
-                    <div className="text-sm opacity-90">{selectedDonor.email}</div>
+                    <div className="font-semibold text-sm">Send Email</div>
+                    <div className="text-xs opacity-90 truncate max-w-[200px]">
+                      {selectedDonor.email}
+                    </div>
                   </div>
                 </a>
               </div>
 
-              {/* Donor Info */}
-              <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-                <h4 className="font-semibold text-gray-800 mb-2">Donor Information</h4>
-                <div className="text-sm text-gray-600 space-y-1">
-                  <div><strong>Blood Group:</strong> {selectedDonor.bloodGroup}</div>
-                  <div><strong>Last Donation:</strong> {getTimeSinceLastDonation(selectedDonor.lastDonationDate)}</div>
+              <div className="mt-6 p-4 bg-muted/50 rounded-lg border border-border">
+                <h4 className="font-semibold text-foreground text-sm mb-2">
+                  Donor Information
+                </h4>
+                <div className="text-xs text-muted-foreground space-y-1.5">
+                  <div>
+                    <span className="font-medium text-foreground">Blood Group:</span>{" "}
+                    {selectedDonor.bloodGroup}
+                  </div>
+                  <div>
+                    <span className="font-medium text-foreground">Last Donation:</span>{" "}
+                    {getTimeSinceLastDonation(selectedDonor.lastDonationDate)}
+                  </div>
                   {selectedDonor.address?.city && (
-                    <div><strong>Location:</strong> {selectedDonor.address.city}, {selectedDonor.address.state}</div>
+                    <div>
+                      <span className="font-medium text-foreground">Location:</span>{" "}
+                      {selectedDonor.address.city}, {selectedDonor.address.state}
+                    </div>
                   )}
                 </div>
               </div>
 
               <button
                 onClick={() => setShowContactModal(false)}
-                className="w-full mt-4 bg-gray-500 hover:bg-gray-600 text-white py-2 rounded-lg transition-colors"
+                className="w-full mt-4 btn-ghost justify-center"
               >
                 Close
               </button>

@@ -34,36 +34,36 @@ const Footer = () => {
   ];
 
   return (
-    <footer className="bg-gradient-to-b from-slate-900 to-gray-900 text-white">
+    <footer className="bg-muted/30 border-t border-border text-foreground">
       {/* Main Footer Content */}
-      <div className="container mx-auto px-4 py-16">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 lg:gap-12">
           
           {/* Brand Column */}
           <div className="lg:col-span-1">
-            <Link to="/" className="flex items-center gap-3 mb-6">
-              <div className="w-12 h-12 flex items-center justify-center rounded-xl bg-gradient-to-br from-red-500 to-red-600 shadow-lg">
-                <Heart className="w-6 h-6 text-white" />
+            <Link to="/" className="flex items-center gap-3 mb-6 group">
+              <div className="w-10 h-10 flex items-center justify-center rounded-xl bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                <Heart className="w-5 h-5 text-primary" />
               </div>
               <div>
-                <h2 className="text-xl font-bold text-white">BloodConnect</h2>
-                <p className="text-red-200 text-sm">Life Saver Network</p>
+                <h2 className="text-lg font-bold tracking-tight text-foreground">KyuuKhoonn</h2>
+                <p className="text-xs text-muted-foreground font-medium">Life Saver Network</p>
               </div>
             </Link>
-            <p className="text-gray-300 mb-6 leading-relaxed">
+            <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
               Connecting compassionate donors with those in need through advanced blood bank management technology. Together, we save lives.
             </p>
-            <div className="flex space-x-4">
+            <div className="flex space-x-3">
               {socialLinks.map((social, index) => {
                 const Icon = social.icon;
                 return (
                   <a
                     key={index}
                     href={social.url}
-                    className="w-10 h-10 flex items-center justify-center rounded-lg bg-gray-800 hover:bg-red-600 transition-all duration-300 hover:scale-110"
+                    className="w-9 h-9 flex items-center justify-center rounded-lg bg-background border border-border text-muted-foreground hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all duration-200"
                     aria-label={social.name}
                   >
-                    <Icon className="w-5 h-5" />
+                    <Icon className="w-4 h-4" />
                   </a>
                 );
               })}
@@ -72,8 +72,7 @@ const Footer = () => {
 
           {/* Quick Links */}
           <div>
-            <h3 className="text-lg font-semibold mb-6 text-white flex items-center gap-2">
-              <div className="w-1 h-4 bg-red-500 rounded-full"></div>
+            <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground mb-6">
               Quick Links
             </h3>
             <ul className="space-y-3">
@@ -81,9 +80,9 @@ const Footer = () => {
                 <li key={index}>
                   <Link
                     to={link.path}
-                    className="text-gray-300 hover:text-white transition-colors duration-200 flex items-center gap-2 group"
+                    className="text-sm text-muted-foreground hover:text-foreground transition-colors duration-200 flex items-center gap-2 group"
                   >
-                    <div className="w-1 h-1 bg-red-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
                     {link.name}
                   </Link>
                 </li>
@@ -93,8 +92,7 @@ const Footer = () => {
 
           {/* For Donors */}
           <div>
-            <h3 className="text-lg font-semibold mb-6 text-white flex items-center gap-2">
-              <div className="w-1 h-4 bg-red-500 rounded-full"></div>
+            <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground mb-6">
               For Donors
             </h3>
             <ul className="space-y-3">
@@ -102,9 +100,9 @@ const Footer = () => {
                 <li key={index}>
                   <Link
                     to={link.path}
-                    className="text-gray-300 hover:text-white transition-colors duration-200 flex items-center gap-2 group"
+                    className="text-sm text-muted-foreground hover:text-foreground transition-colors duration-200 flex items-center gap-2 group"
                   >
-                    <div className="w-1 h-1 bg-red-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
                     {link.name}
                   </Link>
                 </li>
@@ -112,20 +110,19 @@ const Footer = () => {
             </ul>
           </div>
 
-          {/* For Hospitals */}
+          {/* For Hospitals & Contact */}
           <div>
-            <h3 className="text-lg font-semibold mb-6 text-white flex items-center gap-2">
-              <div className="w-1 h-4 bg-red-500 rounded-full"></div>
+            <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground mb-6">
               For Hospitals
             </h3>
-            <ul className="space-y-3">
+            <ul className="space-y-3 mb-8">
               {hospitalResources.map((link, index) => (
                 <li key={index}>
                   <Link
                     to={link.path}
-                    className="text-gray-300 hover:text-white transition-colors duration-200 flex items-center gap-2 group"
+                    className="text-sm text-muted-foreground hover:text-foreground transition-colors duration-200 flex items-center gap-2 group"
                   >
-                    <div className="w-1 h-1 bg-red-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
                     {link.name}
                   </Link>
                 </li>
@@ -133,40 +130,39 @@ const Footer = () => {
             </ul>
 
             {/* Contact Info */}
-            <div className="mt-8 space-y-3">
-              <div className="flex items-center gap-3 text-gray-300">
-                <Phone className="w-4 h-4 text-red-400" />
-                <span>Emergency Hotline: 1-800-BLOOD-NOW</span>
+            <div className="space-y-3">
+              <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                <Phone className="w-4 h-4 text-primary shrink-0" />
+                <span>+977 981-1212222</span>
               </div>
-              <div className="flex items-center gap-3 text-gray-300">
-                <Mail className="w-4 h-4 text-red-400" />
-                <span>help@bloodconnect.org</span>
+              <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                <Mail className="w-4 h-4 text-primary shrink-0" />
+                <span>help@kyuukhoon.com</span>
               </div>
-              <div className="flex items-center gap-3 text-gray-300">
-                <MapPin className="w-4 h-4 text-red-400" />
-                <span>Nationwide Network</span>
+              <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                <MapPin className="w-4 h-4 text-primary shrink-0" />
+                <span>Butwal-11, Devinagar, Nepal</span>
               </div>
             </div>
           </div>
         </div>
-
       </div>
 
       {/* Bottom Bar */}
-      <div className="border-t border-gray-800">
-        <div className="container mx-auto px-4 py-6">
+      <div className="border-t border-border bg-background/50">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            <div className="text-gray-400 text-sm">
-              © {currentYear} BloodConnect. All rights reserved. Saving lives through technology.
+            <div className="text-xs text-muted-foreground text-center md:text-left">
+              © {currentYear} KyuuKhoonn. All rights reserved.
             </div>
-            <div className="flex items-center gap-6 text-sm text-gray-400">
-              <Link to="/privacy" className="hover:text-white transition-colors duration-200">
+            <div className="flex items-center gap-6 text-xs text-muted-foreground">
+              <Link to="/privacy" className="hover:text-foreground transition-colors duration-200">
                 Privacy Policy
               </Link>
-              <Link to="/terms" className="hover:text-white transition-colors duration-200">
+              <Link to="/terms" className="hover:text-foreground transition-colors duration-200">
                 Terms of Service
               </Link>
-              <Link to="/cookies" className="hover:text-white transition-colors duration-200">
+              <Link to="/cookies" className="hover:text-foreground transition-colors duration-200">
                 Cookie Policy
               </Link>
             </div>
@@ -174,13 +170,13 @@ const Footer = () => {
         </div>
       </div>
 
-      {/* Floating Donate Button */}
+      {/* Floating Donate Button - Minimal & Premium */}
       <div className="fixed bottom-6 right-6 z-50">
         <Link
           to="/register/donor"
-          className="flex items-center gap-2 px-6 py-4 bg-gradient-to-r from-red-600 to-red-700 text-white font-semibold rounded-full shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-105 hover:from-red-700 hover:to-red-800"
+          className="flex items-center gap-2 px-5 py-3 bg-primary text-primary-foreground font-medium rounded-full shadow-lg hover:shadow-xl hover:bg-primary/90 transition-all duration-200 hover:-translate-y-0.5"
         >
-          <Heart className="w-5 h-5" />
+          <Heart className="w-4 h-4" />
           <span>Donate Now</span>
         </Link>
       </div>

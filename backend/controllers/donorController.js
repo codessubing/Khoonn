@@ -1,38 +1,36 @@
 import Donor from "../models/donorModel.js";
-// Assuming you have a Facility model for population, and BloodCamp model for camps
-import Facility from "../models/facilityModel.js"; // Placeholder import
-import BloodCamp from "../models/bloodCampModel.js"; // Placeholder import
-import mongoose from "mongoose"; // Needed for ObjectId in aggregation
+import Facility from "../models/facilityModel.js";
+import BloodCamp from "../models/bloodCampModel.js";
+import Blood from "../models/bloodModel.js";
+import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
 
-// /* 👤 Get Donor Profile */
+/* 👤 Get Donor Profile */
 export const getDonorProfile = async (req, res) => {
   try {
-    // ⚠️ Security Check: Ensure the user ID comes from the authenticated token
-    const donorId = req.donor.id; // Comes from verifyToken/protectDonor middleware
+    // ✅ FIX: Safely get user object from either req.user or req.donor
+    const userObj = req.user || req.donor;
+    if (!userObj) {
+      return res.status(401).json({ success: false, message: "Authentication required." });
+    }
+    
+    const donorId = userObj._id || userObj.id;
 
     const donor = await Donor.findById(donorId)
       .populate({
         path: "donationHistory.facility",
-        select: "facilityName address.city address.state", // populate hospital/lab name + location
+        select: "name address.city address.state",
       })
-      .select("-password -__v"); // Exclude sensitive/unnecessary fields
+      .select("-password -__v");
 
     if (!donor) {
-      return res.status(404).json({ message: "Donor not found" });
+      return res.status(404).json({ success: false, message: "Donor not found" });
     }
 
-    // Use the virtual field 'isEligible' for 90-day cooldown status
     const isEligible = donor.isEligible; 
-    
-    // Calculate total donations
-    const totalDonations = donor.donationHistory.length;
-
-    // Last donation
+    const totalDonations = donor.donationHistory ? donor.donationHistory.length : 0;
     const lastDonation = donor.lastDonationDate || null;
 
-    // Next eligible date (90 days rule)
     let nextEligibleDate = null;
     if (lastDonation) {
       const next = new Date(lastDonation);
@@ -40,7 +38,6 @@ export const getDonorProfile = async (req, res) => {
       nextEligibleDate = next;
     }
 
-    // Response Object for frontend
     const donorProfile = {
       _id: donor._id,
       fullName: donor.fullName,
@@ -54,12 +51,11 @@ export const getDonorProfile = async (req, res) => {
       totalDonations,
       lastDonationDate: lastDonation,
       nextEligibleDate,
-      eligibleToDonate: isEligible && donor.eligibleToDonate, // Combine virtual and manual flag
-      donationHistory: donor.donationHistory.map((don) => ({
+      eligibleToDonate: isEligible && donor.eligibleToDonate,
+      donationHistory: (donor.donationHistory || []).map((don) => ({
         id: don._id,
         donationDate: don.donationDate,
-        // The facility field is now populated. Access properties safely.
-        facility: don.facility?.facilityName || "N/A", 
+        facility: don.facility?.name || "N/A",
         city: don.facility?.address?.city,
         state: don.facility?.address?.state,
         bloodGroup: don.bloodGroup,
@@ -71,36 +67,35 @@ export const getDonorProfile = async (req, res) => {
       updatedAt: donor.updatedAt,
     };
 
-    res.status(200).json({ donor: donorProfile });
+    res.status(200).json({ success: true, donor: donorProfile });
   } catch (error) {
     console.error("❌ Error fetching donor profile:", error);
-    res
-      .status(500)
-      .json({ message: "Error fetching donor profile", error: error.message });
+    res.status(500).json({ success: false, message: "Error fetching donor profile", error: error.message });
   }
 };
 
 /* 📝 Update Donor Profile */
 export const updateDonorProfile = async (req, res) => {
   try {
-    // ⚠️ Security Check: Ensure donorId is authenticated and authorized
-    const donorId = req.donor._id; // from protectDonor middleware
+    const userObj = req.user || req.donor;
+    if (!userObj) {
+      return res.status(401).json({ success: false, message: "Authentication required." });
+    }
+    
+    const donorId = userObj._id || userObj.id;
     const { fullName, phone, address, age, gender, weight, password } = req.body;
 
-    // Find by ID and exclude the password for initial retrieval
     const donor = await Donor.findById(donorId).select('+password'); 
-    if (!donor) return res.status(404).json({ message: "Donor not found" });
+    if (!donor) return res.status(404).json({ success: false, message: "Donor not found" });
 
-    // ✅ Update fields only if provided
     donor.fullName = fullName !== undefined ? fullName : donor.fullName;
     donor.phone = phone !== undefined ? phone : donor.phone;
     
-    // Only update address subfields if the main address object is provided
     if (address) {
         donor.address.street = address.street || donor.address.street;
         donor.address.city = address.city || donor.address.city;
         donor.address.state = address.state || donor.address.state;
-        donor.address.pincode = address.pincode || address.pincode;
+        donor.address.pincode = address.pincode || donor.address.pincode; 
     }
     
     donor.age = age !== undefined ? age : donor.age;
@@ -108,7 +103,6 @@ export const updateDonorProfile = async (req, res) => {
     donor.weight = weight !== undefined ? weight : donor.weight;
 
     if (password) {
-      // 🔑 Hash new password using the same salt rounds as the schema (12)
       const salt = await bcrypt.genSalt(12); 
       donor.password = await bcrypt.hash(password, salt);
     }
@@ -116,8 +110,8 @@ export const updateDonorProfile = async (req, res) => {
     const updatedDonor = await donor.save();
 
     res.status(200).json({
+      success: true,
       message: "Profile updated successfully",
-      // Only send back non-sensitive/non-history fields
       donor: {
         fullName: updatedDonor.fullName,
         email: updatedDonor.email,
@@ -130,37 +124,39 @@ export const updateDonorProfile = async (req, res) => {
     });
   } catch (error) {
     console.error("❌ Error updating donor profile:", error);
-    // Handle validation errors from the schema
     if (error.name === 'ValidationError') {
-        return res.status(400).json({ message: "Validation failed", errors: error.errors });
+        return res.status(400).json({ success: false, message: "Validation failed", errors: error.errors });
     }
-    res.status(500).json({ message: "Error updating profile", error: error.message });
+    res.status(500).json({ success: false, message: "Error updating profile", error: error.message });
   }
 };
-
 
 /* 🏥 Get Public Blood Camps for Donors */
 export const getDonorCamps = async (req, res) => {
   try {
-    const { status, page = 1, limit = 10 } = req.query;
+    const { status, page = 1, limit = 10, q } = req.query;
 
     const filter = {};
-    
-    // Filter by status if provided (e.g., 'active', 'completed', 'cancelled')
     if (status && status !== "all") {
       filter.status = status;
     }
 
+    if (q) {
+      filter.$or = [
+        { title: { $regex: q, $options: "i" } },
+        { "location.city": { $regex: q, $options: "i" } },
+        { "location.state": { $regex: q, $options: "i" } }
+      ];
+    }
+
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
-    // Use Promise.all to fetch camps and total count concurrently (efficient)
     const [camps, total] = await Promise.all([
-      // Sort by date ascending (upcoming first)
       BloodCamp.find(filter)
+        .populate('hospital', 'name address.city address.state phone')
         .sort({ date: 1 }) 
         .skip(skip)
         .limit(parseInt(limit)),
-      
       BloodCamp.countDocuments(filter),
     ]);
 
@@ -177,38 +173,26 @@ export const getDonorCamps = async (req, res) => {
     });
   } catch (error) {
     console.error("Get Donor Camps Error:", error);
-    // Better to return 401 if it's an Auth issue
-    if (error.name === 'JsonWebTokenError' || error.name === 'TokenExpiredError') {
-        return res.status(401).json({ success: false, message: "Unauthorized. Please log in." });
-    }
     res.status(500).json({ success: false, message: "Failed to fetch blood camps" });
   }
 };
 
-
-/**
- * @desc Get key statistics for the authenticated donor (efficiently using Aggregation)
- * @route GET /api/donor/stats
- * @access Private (Donor)
- */
+/* 📊 Get key statistics for the authenticated donor */
 export const getDonorStats = async (req, res) => {
   try {
-    // FIX: Safely retrieve donorId using req.donor.id, which worked in getDonorProfile
-    const donorId = req.donor?.id || req.donor?._id; 
-
-    if (!donorId) {
-        // If the middleware failed to attach the ID, return unauthorized
-        return res.status(401).json({ success: false, message: "Unauthorized: Donor ID missing from request." });
+    const userObj = req.user || req.donor;
+    if (!userObj) {
+      return res.status(401).json({ success: false, message: "Authentication required." });
     }
     
-    // Use a single query/aggregation to fetch the donor and calculate all necessary stats
+    const donorId = userObj._id || userObj.id;
+    
     const donorStats = await Donor.aggregate([
-      // 1. Match the specific donor document
       { $match: { _id: new mongoose.Types.ObjectId(donorId) } },
       {
         $project: {
-          _id: 0, // Exclude the donor ID from the result array
-          totalDonations: { $size: "$donationHistory" },
+          _id: 0,
+          totalDonations: { $size: { $ifNull: ["$donationHistory", []] } },
           lastDonationDate: { $max: "$donationHistory.donationDate" },
           weight: "$weight", 
           age: "$age"
@@ -221,14 +205,12 @@ export const getDonorStats = async (req, res) => {
     }
 
     const stats = donorStats[0];
-    
     const totalDonations = stats.totalDonations || 0;
     const lastDonationDate = stats.lastDonationDate || null;
     
     let nextEligibleDonationDate = null;
-    let eligibilityStatus = 'Eligible'; // Default
+    let eligibilityStatus = 'Eligible';
 
-    // 1. Check eligibility based on the 90-day cooldown period
     if (lastDonationDate) {
       const lastDate = new Date(lastDonationDate);
       const nextDate = new Date(lastDate);
@@ -241,13 +223,11 @@ export const getDonorStats = async (req, res) => {
       }
     }
     
-    // 2. Check general medical eligibility rules (overrides cooldown status)
     if (stats.age < 18 || stats.age > 65) {
       eligibilityStatus = 'Ineligible (Age constraint)';
     } else if (stats.weight < 45) {
       eligibilityStatus = 'Ineligible (Weight constraint)';
     }
-
 
     res.json({
       success: true,
@@ -255,7 +235,7 @@ export const getDonorStats = async (req, res) => {
         totalDonations,
         lastDonationDate,
         nextEligibleDonationDate,
-        eligibilityStatus: eligibilityStatus,
+        eligibilityStatus,
       },
     });
 
@@ -265,82 +245,55 @@ export const getDonorStats = async (req, res) => {
   }
 };
 
-/**
- * @desc Get paginated donation history from the embedded array (efficiently using Aggregation)
- * @route GET /api/donor/history
- * @access Private (Donor)
- */
+/* 📜 Get paginated donation history */
 export const getDonorHistory = async (req, res) => {
   try {
-    // FIX: Safely retrieve donorId using req.donor.id, which worked in getDonorProfile
-    const donorId = req.donor?.id || req.donor?._id; 
-
-    if (!donorId) {
-        // If the middleware failed to attach the ID, return unauthorized
-        return res.status(401).json({ success: false, message: "Unauthorized: Donor ID missing from request." });
+    const userObj = req.user || req.donor;
+    if (!userObj) {
+      return res.status(401).json({ success: false, message: "Authentication required." });
     }
     
+    const donorId = userObj._id || userObj.id;
     const { page = 1, limit = 10 } = req.query;
-
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
     const aggregationPipeline = [
-      // 1. Match the specific donor document
       { $match: { _id: new mongoose.Types.ObjectId(donorId) } },
-
-      // 2. Count the total history items before unwinding
-      {
-        $addFields: {
-          totalHistoryLength: { $size: "$donationHistory" }
-        }
-      },
-      
-      // 3. Deconstruct the array field to generate a document for each item (Crucial for array pagination)
-      { $unwind: "$donationHistory" },
-
-      // 4. Sort the history items (most recent first)
+      { $addFields: { totalHistoryLength: { $size: { $ifNull: ["$donationHistory", []] } } } },
+      { $unwind: { path: "$donationHistory", preserveNullAndEmptyArrays: true } },
       { $sort: { "donationHistory.donationDate": -1 } },
-
-      // 5. Apply pagination (skip and limit)
       { $skip: skip },
       { $limit: parseInt(limit) },
-
-      // 6. Optionally, lookup facility details if they were not populated in getDonorProfile
       { 
         $lookup: {
-          from: 'facilities', // The name of the collection that stores Facility documents
+          from: 'facilities',
           localField: 'donationHistory.facility',
           foreignField: '_id',
           as: 'facilityDetails'
         }
       },
-
-      // 7. Reshape the output
       {
         $project: {
-          _id: 0, // Exclude the Donor's _id
+          _id: 0,
           donation: "$donationHistory",
           total: "$totalHistoryLength",
-          facility: { $arrayElemAt: ["$facilityDetails", 0] } // Extract the single facility object
+          facility: { $arrayElemAt: ["$facilityDetails", 0] }
         }
       }
     ];
 
     const result = await Donor.aggregate(aggregationPipeline);
 
-    // Extract total count and history array from the aggregation result
-    // Total should be retrieved safely if the result array is not empty
     const total = result.length > 0 ? result[0].total : 0; 
     
     const history = result.map(item => ({ 
-      id: item.donation._id,
-      donationDate: item.donation.donationDate,
-      bloodGroup: item.donation.bloodGroup,
-      quantity: item.donation.quantity,
-      remarks: item.donation.remarks,
-      verified: item.donation.verified,
-      // Include facility details
-      facility: item.facility?.facilityName || "N/A",
+      id: item.donation?._id,
+      donationDate: item.donation?.donationDate,
+      bloodGroup: item.donation?.bloodGroup,
+      quantity: item.donation?.quantity,
+      remarks: item.donation?.remarks,
+      verified: item.donation?.verified,
+      facility: item.facility?.name || "N/A",
       city: item.facility?.address?.city,
       state: item.facility?.address?.state,
     }));
@@ -361,13 +314,7 @@ export const getDonorHistory = async (req, res) => {
   }
 };
 
-// Add these to your bloodLabController.js
-
-/**
- * @desc Search donors
- * @route GET /api/blood-lab/donors/search
- * @access Private (Blood Lab)
- */
+/* 🔍 Search donors (Blood Lab) */
 export const searchDonor = async (req, res) => {
   try {
     const { term } = req.query;
@@ -394,15 +341,12 @@ export const searchDonor = async (req, res) => {
   }
 };
 
-/**
- * @desc Mark donation
- * @route POST /api/blood-lab/donors/donate/:id
- * @access Private (Blood Lab)
- */
+/* 💉 Mark donation (Blood Lab) */
 export const markDonation = async (req, res) => {
   try {
     const donorId = req.params.id;
-    const labId = req.user._id;
+    // ✅ FIX: Safely get labId from req.user or req.facility
+    const labId = (req.user || req.facility)?._id || (req.user || req.facility)?.id;
     const { quantity = 1, remarks = "", bloodGroup } = req.body;
 
     const donor = await Donor.findById(donorId);
@@ -410,7 +354,6 @@ export const markDonation = async (req, res) => {
       return res.status(404).json({ success: false, message: "Donor not found" });
     }
 
-    // Check if donor can donate (3 months gap)
     if (donor.lastDonationDate) {
       const lastDonation = new Date(donor.lastDonationDate);
       const threeMonthsAgo = new Date();
@@ -424,27 +367,20 @@ export const markDonation = async (req, res) => {
       }
     }
 
-    // Update last donation date
     donor.lastDonationDate = new Date();
-    
-    // Update blood group if provided
-    if (bloodGroup) {
-      donor.bloodGroup = bloodGroup;
-    }
+    if (bloodGroup) donor.bloodGroup = bloodGroup;
 
-    // Add to donation history
     donor.donationHistory.push({
       donationDate: new Date(),
       facility: labId,
       bloodGroup: bloodGroup || donor.bloodGroup,
-      quantity,
+      quantity: Number(quantity),
       remarks,
       verified: true
     });
 
     await donor.save();
 
-    // Add to facility history
     await Facility.findByIdAndUpdate(labId, {
       $push: {
         history: {
@@ -456,9 +392,8 @@ export const markDonation = async (req, res) => {
       },
     });
 
-    // Add to blood stock
-    const bloodType = bloodGroup || donor.bloodGroup;
-    await addToBloodStock(labId, bloodType, quantity);
+    const finalBloodType = bloodGroup || donor.bloodGroup;
+    await addToBloodStock(labId, finalBloodType, Number(quantity));
 
     res.status(200).json({ 
       success: true, 
@@ -471,58 +406,44 @@ export const markDonation = async (req, res) => {
   }
 };
 
-/**
- * @desc Get recent donations
- * @route GET /api/blood-lab/donations/recent
- * @access Private (Blood Lab)
- */
+/* 📈 Get recent donations (Blood Lab) */
 export const getRecentDonations = async (req, res) => {
   try {
-    const labId = req.user._id;
+    const labId = (req.user || req.facility)?._id || (req.user || req.facility)?.id;
     
-    // Get today's start and end
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
-    // Get this week's start
     const weekStart = new Date(today);
     weekStart.setDate(weekStart.getDate() - weekStart.getDay());
 
     const [todayDonations, weekDonations, allDonations, recentDonors] = await Promise.all([
-      // Today's donations
       Donor.countDocuments({
-        'donationHistory.facility': labId,
+        'donationHistory.facility': new mongoose.Types.ObjectId(labId),
         'donationHistory.donationDate': { $gte: today, $lt: tomorrow }
       }),
-      
-      // This week's donations
       Donor.countDocuments({
-        'donationHistory.facility': labId,
+        'donationHistory.facility': new mongoose.Types.ObjectId(labId),
         'donationHistory.donationDate': { $gte: weekStart }
       }),
-      
-      // Total donations
       Donor.aggregate([
         { $unwind: '$donationHistory' },
-        { $match: { 'donationHistory.facility': labId } },
+        { $match: { 'donationHistory.facility': new mongoose.Types.ObjectId(labId) } },
         { $count: 'total' }
       ]),
-      
-      // Recent donations with donor details
       Donor.find({
-        'donationHistory.facility': labId
+        'donationHistory.facility': new mongoose.Types.ObjectId(labId)
       })
       .select('fullName bloodGroup donationHistory')
       .sort({ 'donationHistory.donationDate': -1 })
       .limit(10)
     ]);
 
-    // Format recent donations
     const recentDonations = recentDonors.flatMap(donor => 
       donor.donationHistory
-        .filter(d => d.facility.equals(labId))
+        .filter(d => d.facility && d.facility.toString() === labId.toString())
         .slice(0, 3)
         .map(d => ({
           donorName: donor.fullName,
@@ -557,13 +478,13 @@ const addToBloodStock = async (labId, bloodType, quantity) => {
     expiryDate.setDate(expiryDate.getDate() + 42);
 
     if (stock) {
-      stock.quantity += quantity;
+      stock.quantity += Number(quantity);
       stock.expiryDate = expiryDate;
       await stock.save();
     } else {
       await Blood.create({
         bloodGroup: bloodType,
-        quantity,
+        quantity: Number(quantity),
         expiryDate,
         bloodLab: labId,
       });

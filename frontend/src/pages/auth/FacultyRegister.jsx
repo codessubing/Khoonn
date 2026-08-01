@@ -2,22 +2,21 @@
 import { useState } from "react";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
+import { AlertCircle, Eye, EyeOff, Loader2 } from "lucide-react";
 
 // Constants for better maintainability
 const FACILITY_TYPES = ["Hospital", "Blood Lab"];
-const FACILITY_CATEGORIES = [
-  "Government",
-  "Private",
-  "Trust",
-  "Charity",
-  "Other",
-];
+const FACILITY_CATEGORIES = ["Government", "Private", "Trust", "Charity", "Other"];
 
-const STATES = {
-  Maharashtra: ["Mumbai", "Pune", "Nagpur"],
-  Karnataka: ["Bengaluru", "Mysore", "Mangalore"],
-  Delhi: ["New Delhi", "Dwarka", "Rohini"],
-  "Tamil Nadu": ["Chennai", "Coimbatore", "Madurai"],
+// ✅ UPDATED: Nepal Provinces and major cities/districts
+const NEPAL_LOCATIONS = {
+  "Koshi Province": ["Biratnagar", "Dharan", "Itahari", "Damak", "Birtamod"],
+  "Madhesh Province": ["Janakpur", "Birgunj", "Kalaiya", "Lahan", "Rajbiraj"],
+  "Bagmati Province": ["Kathmandu", "Lalitpur", "Bhaktapur", "Bharatpur", "Hetauda", "Dhulikhel"],
+  "Gandaki Province": ["Pokhara", "Baglung", "Damauli", "Gorkha"],
+  "Lumbini Province": ["Butwal", "Nepalgunj", "Tansen", "Siddharthanagar", "Kapilvastu"],
+  "Karnali Province": ["Birendranagar", "Jumla", "Dailekh", "Kalikot"],
+  "Sudurpashchim Province": ["Dhangadhi", "Mahendranagar", "Dipayal", "Tikapur"],
 };
 
 const WORKING_DAYS = [
@@ -35,8 +34,7 @@ const validators = {
   name: (value) => (!value.trim() ? "Facility name is required" : ""),
   email: (value) => {
     if (!value.trim()) return "Email is required";
-    if (!/^\S+@\S+\.\S+$/.test(value))
-      return "Please enter a valid email address";
+    if (!/^\S+@\S+\.\S+$/.test(value)) return "Please enter a valid email address";
     return "";
   },
   password: (value) => {
@@ -47,31 +45,27 @@ const validators = {
   phone: (value) => {
     if (!value) return "Phone number is required";
     if (value.length !== 10) return "Phone number must be exactly 10 digits";
-    if (!/^[6-9][0-9]{9}$/.test(value))
-      return "Phone number must start with 6-9";
+    // ✅ UPDATED: Nepal phone numbers start with 9
+    if (!/^[9][0-9]{9}$/.test(value)) return "Phone number must start with 9 (e.g., 98XXXXXXXX)";
     return "";
   },
   emergencyContact: (value) => {
     if (!value) return "Emergency contact is required";
-    if (value.length !== 10)
-      return "Emergency contact must be exactly 10 digits";
-    if (!/^[6-9][0-9]{9}$/.test(value))
-      return "Emergency contact must start with 6-9";
+    if (value.length !== 10) return "Emergency contact must be exactly 10 digits";
+    if (!/^[9][0-9]{9}$/.test(value)) return "Emergency contact must start with 9";
     return "";
   },
-  registrationNumber: (value) =>
-    !value.trim() ? "Registration number is required" : "",
-  "address.street": (value) =>
-    !value.trim() ? "Street address is required" : "",
+  registrationNumber: (value) => (!value.trim() ? "Registration number is required" : ""),
+  "address.street": (value) => (!value.trim() ? "Street address is required" : ""),
   "address.city": (value) => (!value.trim() ? "City is required" : ""),
-  "address.state": (value) => (!value.trim() ? "State is required" : ""),
+  "address.state": (value) => (!value.trim() ? "Province is required" : ""),
   "address.pincode": (value) => {
     if (!value) return "Pincode is required";
-    if (!/^[1-9][0-9]{5}$/.test(value)) return "Pincode must be 6 digits";
+    // ✅ UPDATED: Nepal uses 5-digit postal codes
+    if (!/^[0-9]{5}$/.test(value)) return "Pincode must be exactly 5 digits (e.g., 32900)";
     return "";
   },
-  "documents.registrationProof.url": (value) =>
-    !value.trim() ? "Document URL is required" : "",
+  "documents.registrationProof.url": (value) => (!value.trim() ? "Document URL is required" : ""),
 };
 
 export default function FacilityRegisterForm() {
@@ -102,57 +96,43 @@ export default function FacilityRegisterForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [touched, setTouched] = useState({});
 
-  // Handle form field changes
+  const getInputClass = (fieldName) => {
+    const hasError = touched[fieldName] && errors[fieldName];
+    return `w-full px-4 py-2.5 bg-background border rounded-[var(--radius)] text-foreground text-sm transition-all focus:outline-none focus:ring-[3px] ${
+      hasError
+        ? "border-destructive focus:border-destructive focus:ring-destructive/15"
+        : "border-input focus:border-ring focus:ring-ring/15"
+    }`;
+  };
+
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
 
     setFormData((prev) => {
-      // Handle nested objects
       if (name.startsWith("address.")) {
         const field = name.split(".")[1];
-        return {
-          ...prev,
-          address: { ...prev.address, [field]: value },
-        };
+        return { ...prev, address: { ...prev.address, [field]: value } };
       } else if (name.startsWith("documents.registrationProof.")) {
         const field = name.split(".")[2];
         return {
           ...prev,
           documents: {
-            registrationProof: {
-              ...prev.documents.registrationProof,
-              [field]: value,
-            },
+            registrationProof: { ...prev.documents.registrationProof, [field]: value },
           },
         };
       } else if (name.startsWith("operatingHours.")) {
         const field = name.split(".")[1];
         if (field === "workingDays") {
-          const options = Array.from(e.target.selectedOptions).map(
-            (o) => o.value,
-          );
-          return {
-            ...prev,
-            operatingHours: { ...prev.operatingHours, workingDays: options },
-          };
+          const options = Array.from(e.target.selectedOptions).map((o) => o.value);
+          return { ...prev, operatingHours: { ...prev.operatingHours, workingDays: options } };
         }
-        return {
-          ...prev,
-          operatingHours: { ...prev.operatingHours, [field]: value },
-        };
+        return { ...prev, operatingHours: { ...prev.operatingHours, [field]: value } };
       }
-
-      // Handle regular fields
-      return {
-        ...prev,
-        [name]: type === "checkbox" ? checked : value,
-      };
+      return { ...prev, [name]: type === "checkbox" ? checked : value };
     });
 
-    // Mark field as touched
     setTouched((prev) => ({ ...prev, [name]: true }));
 
-    // Clear error when user starts typing
     if (errors[name]) {
       setErrors((prev) => {
         const newErrors = { ...prev };
@@ -162,19 +142,14 @@ export default function FacilityRegisterForm() {
     }
   };
 
-  // Handle blur events for validation
   const handleBlur = (e) => {
     const { name } = e.target;
     setTouched((prev) => ({ ...prev, [name]: true }));
-
-    // Validate single field
     validateField(name);
   };
 
-  // Validate single field
   const validateField = (fieldName) => {
     let value;
-
     if (fieldName.includes(".")) {
       const [parent, child] = fieldName.split(".");
       if (parent === "address") {
@@ -187,22 +162,16 @@ export default function FacilityRegisterForm() {
     }
 
     const error = validators[fieldName]?.(value);
-
     setErrors((prev) => {
-      if (error) {
-        return { ...prev, [fieldName]: error };
-      } else {
-        const newErrors = { ...prev };
-        delete newErrors[fieldName];
-        return newErrors;
-      }
+      if (error) return { ...prev, [fieldName]: error };
+      const newErrors = { ...prev };
+      delete newErrors[fieldName];
+      return newErrors;
     });
   };
 
-  // Validate current step
   const validateStep = () => {
     const newErrors = {};
-
     const stepValidations = {
       1: ["name", "email"],
       2: ["password", "facilityType"],
@@ -220,7 +189,6 @@ export default function FacilityRegisterForm() {
 
     stepValidations[step].forEach((field) => {
       let value;
-
       if (field.includes(".")) {
         const [parent, child] = field.split(".");
         if (parent === "address") {
@@ -231,14 +199,11 @@ export default function FacilityRegisterForm() {
       } else {
         value = formData[field];
       }
-
       const error = validators[field]?.(value);
       if (error) newErrors[field] = error;
     });
 
     setErrors(newErrors);
-
-    // Mark all step fields as touched to show errors
     const newTouched = { ...touched };
     stepValidations[step].forEach((field) => {
       newTouched[field] = true;
@@ -253,9 +218,8 @@ export default function FacilityRegisterForm() {
       setStep(step + 1);
       window.scrollTo({ top: 0, behavior: "smooth" });
     } else {
-      // Scroll to first error
       const firstErrorField = Object.keys(errors)[0];
-      const element = document.querySelector(`[name="${firstErrorField}"]`);
+      const element = document.querySelector(`[name="${firstErrorField}"], [id="${firstErrorField}"]`);
       if (element) {
         element.scrollIntoView({ behavior: "smooth", block: "center" });
         element.focus();
@@ -268,132 +232,99 @@ export default function FacilityRegisterForm() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  // Fixes were already here, but check again for clarity:
   const handleSubmit = async (e) => {
-    // If 'e' is provided (from form onSubmit or button click), prevent default
-    // In this setup, it's safer to check for a method that may exist.
     if (e && typeof e.preventDefault === "function") {
       e.preventDefault();
     }
 
-    // Ensure validation runs before proceeding to API call
     if (!validateStep()) {
       console.log("Validation failed on step 3. Data not submitted.");
-      // Stop execution if validation fails
       return;
     }
 
     setIsSubmitting(true);
 
-    // 1. Get the raw facilityType string (e.g., "Blood Lab")
     const rawFacilityType = formData.facilityType;
-
-    // 2. Create the required role slug (e.g., "blood lab" -> "blood-lab")
     const roleSlug = rawFacilityType.toLowerCase().replace(" ", "-");
 
-    // 3. Construct the submission payload
     const submissionPayload = {
       ...formData,
-
-      // IMPORTANT: Keep the facilityType field as the original capitalized value.
       facilityType: roleSlug,
-
-      // Set the role field to the required slug format.
       role: roleSlug,
     };
 
-    // **YOUR TARGET URL**
-    const API_URL = `${import.meta.env.VITE_API_URL || ""}/api/auth/register`;
+    // ✅ FIXED: Prevents the double /api/api/ bug
+    const baseURL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+    const API_URL = `${baseURL}/auth/register`; 
 
-    console.log("Submitting Data to Backend:", submissionPayload); // Use the new payload
+    console.log("Submitting to:", API_URL); // Verify this in your browser console
 
     try {
       const response = await fetch(API_URL, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        // ⭐️ Use the constructed payload here
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(submissionPayload),
       });
 
-      // Check if the response status is 2xx (Success)
       if (response.ok) {
         const result = await response.json();
         console.log("Facility Data Registered Successfully:", result);
-        toast("✅ Facility Registered Successfully!");
-        // You might want to clear the form or redirect here
+        toast.success("✅ Facility Registered Successfully!");
         navigate("/");
       } else {
-        // Handle server-side errors (400, 500 status codes)
-        const errorData = await response.json();
+        const errorData = await response.json().catch(() => ({}));
         console.error("Registration failed:", response.status, errorData);
-        alert(
-          `❌ Registration failed. Status: ${response.status}. Message: ${errorData.message || "Check server logs."}`,
-        );
+        toast.error(`Registration failed: ${errorData.message || "Check server logs."}`);
       }
     } catch (error) {
-      // Handle network errors (e.g., server unreachable)
       console.error("Network or fetch error:", error);
-      alert(
-        "❌ Registration failed due to a network error. Ensure the backend is running.",
-      );
+      toast.error("Registration failed due to a network error. Ensure the backend is running.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Helper to check if field should show error
-  const shouldShowError = (fieldName) => {
-    return touched[fieldName] && errors[fieldName];
-  };
-
+  const shouldShowError = (fieldName) => touched[fieldName] && errors[fieldName];
   const progressPercentage = (step / 3) * 100;
 
   return (
-    <div className="min-h-screen bg-red-50 flex items-center justify-center py-8 px-4">
-      <div className="w-full max-w-3xl bg-white rounded-xl shadow-lg overflow-hidden">
+    <div className="min-h-screen bg-background flex items-center justify-center py-8 px-4">
+      <div className="w-full max-w-3xl bg-card border border-border rounded-2xl shadow-sm overflow-hidden">
         {/* Header Section */}
-        <div className="bg-red-700 text-white p-6">
-          <h1 className="text-2xl font-bold text-center mb-2">
+        <div className="p-6 sm:p-8 border-b border-border bg-muted/30">
+          <h1 className="text-2xl font-bold tracking-tight text-foreground text-center mb-2">
             Blood Facility Registration
           </h1>
-          <p className="text-center mb-4 opacity-90">
+          <p className="text-center text-muted-foreground mb-6">
             Register your facility in 3 simple steps
           </p>
 
           {/* Progress Bar */}
-          <div className="mb-2 flex justify-between items-center text-sm">
-            <span>Step {step} of 3</span>
-            <span>{progressPercentage.toFixed(0)}% Complete</span>
+          <div className="mb-2 flex justify-between items-center text-sm font-medium">
+            <span className="text-foreground">Step {step} of 3</span>
+            <span className="text-muted-foreground">{progressPercentage.toFixed(0)}% Complete</span>
           </div>
-          <div className="w-full bg-red-300 rounded-full h-2.5">
+          <div className="w-full bg-muted rounded-full h-2 mb-4">
             <div
-              className="bg-white h-2.5 rounded-full transition-all duration-300"
+              className="bg-primary h-2 rounded-full transition-all duration-500 ease-out"
               style={{ width: `${progressPercentage}%` }}
             ></div>
           </div>
-          <div className="flex justify-between mt-2 text-sm">
-            <span className={step >= 1 ? "font-semibold" : "opacity-75"}>
-              Basic Info
-            </span>
-            <span className={step >= 2 ? "font-semibold" : "opacity-75"}>
-              Account
-            </span>
-            <span className={step >= 3 ? "font-semibold" : "opacity-75"}>
-              Details
-            </span>
+          <div className="flex justify-between text-xs font-medium text-muted-foreground">
+            <span className={step >= 1 ? "text-primary font-semibold" : ""}>Basic Info</span>
+            <span className={step >= 2 ? "text-primary font-semibold" : ""}>Account</span>
+            <span className={step >= 3 ? "text-primary font-semibold" : ""}>Details</span>
           </div>
         </div>
 
         {/* Form Section */}
-        <form onSubmit={handleSubmit} className="p-6 md:p-8 space-y-6">
+        <form onSubmit={handleSubmit} className="p-6 sm:p-8 space-y-6">
           {/* Step 1: Basic Information */}
           {step === 1 && (
-            <div className="space-y-6">
+            <div className="space-y-5">
               <div>
-                <label htmlFor="name" className="block font-medium mb-2">
-                  Facility Name <span className="text-red-500">*</span>
+                <label htmlFor="name" className="block text-sm font-medium text-foreground mb-1.5">
+                  Facility Name <span className="text-destructive">*</span>
                 </label>
                 <input
                   id="name"
@@ -402,23 +333,19 @@ export default function FacilityRegisterForm() {
                   value={formData.name}
                   onChange={handleChange}
                   onBlur={handleBlur}
-                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent transition ${
-                    shouldShowError("name")
-                      ? "border-red-500"
-                      : "border-gray-300"
-                  }`}
+                  className={getInputClass("name")}
                   placeholder="Enter facility name"
                 />
                 {shouldShowError("name") && (
-                  <p className="text-red-500 text-sm mt-1 flex items-center">
-                    <span className="mr-1">⚠</span> {errors.name}
+                  <p className="text-destructive text-xs mt-1.5 flex items-center gap-1.5">
+                    <AlertCircle size={14} /> {errors.name}
                   </p>
                 )}
               </div>
 
               <div>
-                <label htmlFor="email" className="block font-medium mb-2">
-                  Email <span className="text-red-500">*</span>
+                <label htmlFor="email" className="block text-sm font-medium text-foreground mb-1.5">
+                  Email <span className="text-destructive">*</span>
                 </label>
                 <input
                   id="email"
@@ -427,16 +354,12 @@ export default function FacilityRegisterForm() {
                   value={formData.email}
                   onChange={handleChange}
                   onBlur={handleBlur}
-                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent transition ${
-                    shouldShowError("email")
-                      ? "border-red-500"
-                      : "border-gray-300"
-                  }`}
+                  className={getInputClass("email")}
                   placeholder="Enter email address"
                 />
                 {shouldShowError("email") && (
-                  <p className="text-red-500 text-sm mt-1 flex items-center">
-                    <span className="mr-1">⚠</span> {errors.email}
+                  <p className="text-destructive text-xs mt-1.5 flex items-center gap-1.5">
+                    <AlertCircle size={14} /> {errors.email}
                   </p>
                 )}
               </div>
@@ -445,10 +368,10 @@ export default function FacilityRegisterForm() {
 
           {/* Step 2: Account Information */}
           {step === 2 && (
-            <div className="space-y-6">
+            <div className="space-y-5">
               <div>
-                <label htmlFor="password" className="block font-medium mb-2">
-                  Password <span className="text-red-500">*</span>
+                <label htmlFor="password" className="block text-sm font-medium text-foreground mb-1.5">
+                  Password <span className="text-destructive">*</span>
                 </label>
                 <div className="relative">
                   <input
@@ -458,38 +381,29 @@ export default function FacilityRegisterForm() {
                     value={formData.password}
                     onChange={handleChange}
                     onBlur={handleBlur}
-                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent transition ${
-                      shouldShowError("password")
-                        ? "border-red-500"
-                        : "border-gray-300"
-                    }`}
+                    className={getInputClass("password")}
                     placeholder="Enter password (min 6 characters)"
                   />
                   <button
                     type="button"
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground hover:text-foreground transition-colors"
                     onClick={() => setShowPassword(!showPassword)}
-                    aria-label={
-                      showPassword ? "Hide password" : "Show password"
-                    }
+                    aria-label={showPassword ? "Hide password" : "Show password"}
                   >
-                    {showPassword ? "🙈" : "👁"}
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
                 </div>
                 {shouldShowError("password") && (
-                  <p className="text-red-500 text-sm mt-1 flex items-center">
-                    <span className="mr-1">⚠</span> {errors.password}
+                  <p className="text-destructive text-xs mt-1.5 flex items-center gap-1.5">
+                    <AlertCircle size={14} /> {errors.password}
                   </p>
                 )}
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div>
-                  <label
-                    htmlFor="facilityType"
-                    className="block font-medium mb-2"
-                  >
-                    Facility Type <span className="text-red-500">*</span>
+                  <label htmlFor="facilityType" className="block text-sm font-medium text-foreground mb-1.5">
+                    Facility Type <span className="text-destructive">*</span>
                   </label>
                   <select
                     id="facilityType"
@@ -497,7 +411,7 @@ export default function FacilityRegisterForm() {
                     value={formData.facilityType}
                     onChange={handleChange}
                     onBlur={handleBlur}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent transition"
+                    className={getInputClass("facilityType")}
                   >
                     {FACILITY_TYPES.map((ft) => (
                       <option key={ft} value={ft}>
@@ -508,10 +422,7 @@ export default function FacilityRegisterForm() {
                 </div>
 
                 <div>
-                  <label
-                    htmlFor="facilityCategory"
-                    className="block font-medium mb-2"
-                  >
+                  <label htmlFor="facilityCategory" className="block text-sm font-medium text-foreground mb-1.5">
                     Facility Category
                   </label>
                   <select
@@ -519,7 +430,8 @@ export default function FacilityRegisterForm() {
                     name="facilityCategory"
                     value={formData.facilityCategory}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent transition"
+                    onBlur={handleBlur}
+                    className={getInputClass("facilityCategory")}
                   >
                     {FACILITY_CATEGORIES.map((fc) => (
                       <option key={fc} value={fc}>
@@ -534,11 +446,11 @@ export default function FacilityRegisterForm() {
 
           {/* Step 3: Facility Details */}
           {step === 3 && (
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div>
-                  <label htmlFor="phone" className="block font-medium mb-2">
-                    Phone <span className="text-red-500">*</span>
+                  <label htmlFor="phone" className="block text-sm font-medium text-foreground mb-1.5">
+                    Phone <span className="text-destructive">*</span>
                   </label>
                   <input
                     id="phone"
@@ -547,27 +459,20 @@ export default function FacilityRegisterForm() {
                     value={formData.phone}
                     onChange={handleChange}
                     onBlur={handleBlur}
-                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent transition ${
-                      shouldShowError("phone")
-                        ? "border-red-500"
-                        : "border-gray-300"
-                    }`}
-                    placeholder="10-digit phone number"
+                    className={getInputClass("phone")}
+                    placeholder="98XXXXXXXX"
                     maxLength="10"
                   />
                   {shouldShowError("phone") && (
-                    <p className="text-red-500 text-sm mt-1 flex items-center">
-                      <span className="mr-1">⚠</span> {errors.phone}
+                    <p className="text-destructive text-xs mt-1.5 flex items-center gap-1.5">
+                      <AlertCircle size={14} /> {errors.phone}
                     </p>
                   )}
                 </div>
 
                 <div>
-                  <label
-                    htmlFor="emergencyContact"
-                    className="block font-medium mb-2"
-                  >
-                    Emergency Contact <span className="text-red-500">*</span>
+                  <label htmlFor="emergencyContact" className="block text-sm font-medium text-foreground mb-1.5">
+                    Emergency Contact <span className="text-destructive">*</span>
                   </label>
                   <input
                     id="emergencyContact"
@@ -576,17 +481,13 @@ export default function FacilityRegisterForm() {
                     value={formData.emergencyContact}
                     onChange={handleChange}
                     onBlur={handleBlur}
-                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent transition ${
-                      shouldShowError("emergencyContact")
-                        ? "border-red-500"
-                        : "border-gray-300"
-                    }`}
-                    placeholder="10-digit emergency contact"
+                    className={getInputClass("emergencyContact")}
+                    placeholder="98XXXXXXXX"
                     maxLength="10"
                   />
                   {shouldShowError("emergencyContact") && (
-                    <p className="text-red-500 text-sm mt-1 flex items-center">
-                      <span className="mr-1">⚠</span> {errors.emergencyContact}
+                    <p className="text-destructive text-xs mt-1.5 flex items-center gap-1.5">
+                      <AlertCircle size={14} /> {errors.emergencyContact}
                     </p>
                   )}
                 </div>
@@ -594,30 +495,26 @@ export default function FacilityRegisterForm() {
 
               {/* Address Section */}
               <div className="space-y-4">
-                <label className="block font-medium mb-2">
-                  Address <span className="text-red-500">*</span>
+                <label className="block text-sm font-medium text-foreground mb-1.5">
+                  Address <span className="text-destructive">*</span>
                 </label>
 
                 <input
                   type="text"
                   name="address.street"
-                  placeholder="Street Address"
+                  placeholder="Street Address / Tole"
                   value={formData.address.street}
                   onChange={handleChange}
                   onBlur={handleBlur}
-                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent transition ${
-                    shouldShowError("address.street")
-                      ? "border-red-500"
-                      : "border-gray-300"
-                  }`}
+                  className={getInputClass("address.street")}
                 />
                 {shouldShowError("address.street") && (
-                  <p className="text-red-500 text-sm mt-1 flex items-center">
-                    <span className="mr-1">⚠</span> {errors["address.street"]}
+                  <p className="text-destructive text-xs mt-1.5 flex items-center gap-1.5">
+                    <AlertCircle size={14} /> {errors["address.street"]}
                   </p>
                 )}
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
                   <div>
                     <select
                       name="address.state"
@@ -626,27 +523,22 @@ export default function FacilityRegisterForm() {
                         handleChange(e);
                         setFormData((prev) => ({
                           ...prev,
-                          address: { ...prev.address, city: "" },
+                          address: { ...prev.address, city: "", pincode: "" },
                         }));
                       }}
                       onBlur={handleBlur}
-                      className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent transition ${
-                        shouldShowError("address.state")
-                          ? "border-red-500"
-                          : "border-gray-300"
-                      }`}
+                      className={getInputClass("address.state")}
                     >
-                      <option value="">Select State</option>
-                      {Object.keys(STATES).map((state) => (
+                      <option value="">Select Province</option>
+                      {Object.keys(NEPAL_LOCATIONS).map((state) => (
                         <option key={state} value={state}>
                           {state}
                         </option>
                       ))}
                     </select>
                     {shouldShowError("address.state") && (
-                      <p className="text-red-500 text-sm mt-1 flex items-center">
-                        <span className="mr-1">⚠</span>{" "}
-                        {errors["address.state"]}
+                      <p className="text-destructive text-xs mt-1.5 flex items-center gap-1.5">
+                        <AlertCircle size={14} /> {errors["address.state"]}
                       </p>
                     )}
                   </div>
@@ -657,24 +549,20 @@ export default function FacilityRegisterForm() {
                       value={formData.address.city}
                       onChange={handleChange}
                       onBlur={handleBlur}
-                      className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent transition ${
-                        shouldShowError("address.city")
-                          ? "border-red-500"
-                          : "border-gray-300"
-                      }`}
+                      className={getInputClass("address.city")}
                       disabled={!formData.address.state}
                     >
                       <option value="">Select City</option>
                       {formData.address.state &&
-                        STATES[formData.address.state].map((city) => (
+                        NEPAL_LOCATIONS[formData.address.state].map((city) => (
                           <option key={city} value={city}>
                             {city}
                           </option>
                         ))}
                     </select>
                     {shouldShowError("address.city") && (
-                      <p className="text-red-500 text-sm mt-1 flex items-center">
-                        <span className="mr-1">⚠</span> {errors["address.city"]}
+                      <p className="text-destructive text-xs mt-1.5 flex items-center gap-1.5">
+                        <AlertCircle size={14} /> {errors["address.city"]}
                       </p>
                     )}
                   </div>
@@ -683,21 +571,16 @@ export default function FacilityRegisterForm() {
                     <input
                       type="text"
                       name="address.pincode"
-                      placeholder="Pincode"
+                      placeholder="e.g., 32900"
                       value={formData.address.pincode}
                       onChange={handleChange}
                       onBlur={handleBlur}
-                      className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent transition ${
-                        shouldShowError("address.pincode")
-                          ? "border-red-500"
-                          : "border-gray-300"
-                      }`}
-                      maxLength="6"
+                      className={getInputClass("address.pincode")}
+                      maxLength="5"
                     />
                     {shouldShowError("address.pincode") && (
-                      <p className="text-red-500 text-sm mt-1 flex items-center">
-                        <span className="mr-1">⚠</span>{" "}
-                        {errors["address.pincode"]}
+                      <p className="text-destructive text-xs mt-1.5 flex items-center gap-1.5">
+                        <AlertCircle size={14} /> {errors["address.pincode"]}
                       </p>
                     )}
                   </div>
@@ -705,11 +588,8 @@ export default function FacilityRegisterForm() {
               </div>
 
               <div>
-                <label
-                  htmlFor="registrationNumber"
-                  className="block font-medium mb-2"
-                >
-                  Registration Number <span className="text-red-500">*</span>
+                <label htmlFor="registrationNumber" className="block text-sm font-medium text-foreground mb-1.5">
+                  Registration Number <span className="text-destructive">*</span>
                 </label>
                 <input
                   id="registrationNumber"
@@ -718,23 +598,19 @@ export default function FacilityRegisterForm() {
                   value={formData.registrationNumber}
                   onChange={handleChange}
                   onBlur={handleBlur}
-                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent transition ${
-                    shouldShowError("registrationNumber")
-                      ? "border-red-500"
-                      : "border-gray-300"
-                  }`}
+                  className={getInputClass("registrationNumber")}
                   placeholder="Enter registration number"
                 />
                 {shouldShowError("registrationNumber") && (
-                  <p className="text-red-500 text-sm mt-1 flex items-center">
-                    <span className="mr-1">⚠</span> {errors.registrationNumber}
+                  <p className="text-destructive text-xs mt-1.5 flex items-center gap-1.5">
+                    <AlertCircle size={14} /> {errors.registrationNumber}
                   </p>
                 )}
               </div>
 
               <div>
-                <label htmlFor="documentUrl" className="block font-medium mb-2">
-                  Registration Proof URL <span className="text-red-500">*</span>
+                <label htmlFor="documentUrl" className="block text-sm font-medium text-foreground mb-1.5">
+                  Registration Proof URL <span className="text-destructive">*</span>
                 </label>
                 <input
                   id="documentUrl"
@@ -743,25 +619,20 @@ export default function FacilityRegisterForm() {
                   value={formData.documents.registrationProof.url}
                   onChange={handleChange}
                   onBlur={handleBlur}
-                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent transition ${
-                    shouldShowError("documents.registrationProof.url")
-                      ? "border-red-500"
-                      : "border-gray-300"
-                  }`}
+                  className={getInputClass("documents.registrationProof.url")}
                   placeholder="https://example.com/document.pdf"
                 />
                 {shouldShowError("documents.registrationProof.url") && (
-                  <p className="text-red-500 text-sm mt-1 flex items-center">
-                    <span className="mr-1">⚠</span>{" "}
-                    {errors["documents.registrationProof.url"]}
+                  <p className="text-destructive text-xs mt-1.5 flex items-center gap-1.5">
+                    <AlertCircle size={14} /> {errors["documents.registrationProof.url"]}
                   </p>
                 )}
               </div>
 
               {/* Operating Hours */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div>
-                  <label htmlFor="openTime" className="block font-medium mb-2">
+                  <label htmlFor="openTime" className="block text-sm font-medium text-foreground mb-1.5">
                     Opening Time
                   </label>
                   <input
@@ -770,11 +641,11 @@ export default function FacilityRegisterForm() {
                     name="operatingHours.open"
                     value={formData.operatingHours.open}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent transition"
+                    className={getInputClass("operatingHours.open")}
                   />
                 </div>
                 <div>
-                  <label htmlFor="closeTime" className="block font-medium mb-2">
+                  <label htmlFor="closeTime" className="block text-sm font-medium text-foreground mb-1.5">
                     Closing Time
                   </label>
                   <input
@@ -783,13 +654,13 @@ export default function FacilityRegisterForm() {
                     name="operatingHours.close"
                     value={formData.operatingHours.close}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent transition"
+                    className={getInputClass("operatingHours.close")}
                   />
                 </div>
               </div>
 
               <div>
-                <label htmlFor="workingDays" className="block font-medium mb-2">
+                <label htmlFor="workingDays" className="block text-sm font-medium text-foreground mb-1.5">
                   Working Days
                 </label>
                 <select
@@ -798,7 +669,7 @@ export default function FacilityRegisterForm() {
                   multiple
                   value={formData.operatingHours.workingDays}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent transition h-32"
+                  className={`${getInputClass("operatingHours.workingDays")} h-32`}
                   size={5}
                 >
                   {WORKING_DAYS.map((day) => (
@@ -807,46 +678,44 @@ export default function FacilityRegisterForm() {
                     </option>
                   ))}
                 </select>
-                <p className="text-sm text-gray-500 mt-1">
+                <p className="text-xs text-muted-foreground mt-1.5">
                   Hold Ctrl/Cmd to select multiple days
                 </p>
               </div>
 
               {/* Service Options */}
-              <div className="flex flex-wrap gap-6">
-                <label className="flex items-center space-x-3 cursor-pointer">
+              <div className="flex flex-wrap gap-6 pt-2">
+                <label className="flex items-center gap-3 cursor-pointer">
                   <input
                     type="checkbox"
                     name="is24x7"
                     checked={formData.is24x7}
                     onChange={handleChange}
-                    className="w-4 h-4 accent-red-500"
+                    className="w-4 h-4 rounded border-input text-primary focus:ring-ring/15 focus:ring-2 accent-primary cursor-pointer"
                   />
-                  <span className="font-medium">24x7 Service</span>
+                  <span className="text-sm font-medium text-foreground">24x7 Service</span>
                 </label>
-                <label className="flex items-center space-x-3 cursor-pointer">
+                <label className="flex items-center gap-3 cursor-pointer">
                   <input
                     type="checkbox"
                     name="emergencyServices"
                     checked={formData.emergencyServices}
                     onChange={handleChange}
-                    className="w-4 h-4 accent-red-500"
+                    className="w-4 h-4 rounded border-input text-primary focus:ring-ring/15 focus:ring-2 accent-primary cursor-pointer"
                   />
-                  <span className="font-medium">Emergency Services</span>
+                  <span className="text-sm font-medium text-foreground">Emergency Services</span>
                 </label>
               </div>
             </div>
           )}
 
           {/* Navigation Buttons */}
-          <div
-            className={`flex ${step > 1 ? "justify-between" : "justify-end"} pt-6 border-t`}
-          >
+          <div className={`flex ${step > 1 ? "justify-between" : "justify-end"} pt-6 border-t border-border`}>
             {step > 1 && (
               <button
                 type="button"
                 onClick={handleBack}
-                className="px-6 py-2.5 bg-gray-200 text-gray-900 rounded-lg hover:bg-gray-300 transition font-medium"
+                className="btn-ghost"
                 disabled={isSubmitting}
               >
                 Back
@@ -857,20 +726,19 @@ export default function FacilityRegisterForm() {
               <button
                 type="button"
                 onClick={handleNext}
-                className="px-6 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-medium"
+                className="btn-advanced"
               >
                 Next Step
               </button>
             ) : (
               <button
-                type="button" // Must be type="button"
-                onClick={handleSubmit} // Must call handleSubmit manually
+                type="submit"
                 disabled={isSubmitting}
-                className="px-6 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                className="btn-advanced flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
               >
                 {isSubmitting ? (
                   <>
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                    <Loader2 className="w-4 h-4 animate-spin" />
                     Registering...
                   </>
                 ) : (

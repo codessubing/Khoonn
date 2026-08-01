@@ -1117,7 +1117,7 @@ supports-color@^5.5.0:
   dependencies:
     has-flag "^3.0.0"
 
-swagger-jsdoc@^6.2.8:
+swagger-jsdoc@^6.3.0:
   version "6.3.0"
   resolved "https://registry.npmjs.org/swagger-jsdoc/-/swagger-jsdoc-6.3.0.tgz"
   integrity sha512-I+iQjVGV3t28pOkQUJv2MncthvOtkEactOn8R76SvSYhxgtIn7FoqfDHwQaN+GBnQdXQLrhgDXseKitmJcHMsA==

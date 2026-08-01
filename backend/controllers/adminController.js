@@ -1,5 +1,6 @@
 import Donor from "../models/donorModel.js";
 import Facility from "../models/facilityModel.js";
+// import Camp from "../models/campModel.js"; // Uncomment when you create the Camp model
 
 // 🧩 Get Dashboard Overview Stats
 export const getDashboardStats = async (req, res) => {
@@ -16,41 +17,88 @@ export const getDashboardStats = async (req, res) => {
       0
     );
 
-    const activeDonors = await Donor.countDocuments({ isEligible: true });
+    // Note: Ensure your Donor model uses 'eligibleToDonate' or 'isEligible' consistently
+    const activeDonors = await Donor.countDocuments({ eligibleToDonate: true });
+
+    // TODO: Replace placeholder with actual camp count when Camp model is ready
+    // const upcomingCamps = await Camp.countDocuments({ status: "Upcoming" });
+    const upcomingCamps = 0; 
 
     res.status(200).json({
+      success: true,
       totalDonors,
       totalFacilities,
       approvedFacilities,
       pendingFacilities,
       totalDonations,
       activeDonors,
-      upcomingCamps: 3, // Placeholder
+      upcomingCamps,
     });
   } catch (err) {
     console.error("Admin Stats Error:", err);
-    res.status(500).json({ message: "Failed to fetch stats" });
+    res.status(500).json({ success: false, message: "Failed to fetch stats" });
   }
 };
 
-// 🧍 Get All Donors
+// 🧍 Get All Donors (With Pagination)
 export const getAllDonors = async (req, res) => {
   try {
-    // Note: This function was present in your code block but not used in the router
-    const donors = await Donor.find().select("-password");
-    res.status(200).json({ donors });
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 50;
+    const skip = (page - 1) * limit;
+
+    const donors = await Donor.find()
+      .select("-password")
+      .skip(skip)
+      .limit(limit)
+      .sort({ createdAt: -1 }); // Newest first
+
+    const total = await Donor.countDocuments();
+
+    res.status(200).json({
+      success: true,
+      donors,
+      pagination: {
+        currentPage: page,
+        totalPages: Math.ceil(total / limit),
+        totalDonors: total,
+      },
+    });
   } catch (err) {
-    res.status(500).json({ message: "Error fetching donors" });
+    console.error("Get Donors Error:", err);
+    res.status(500).json({ success: false, message: "Error fetching donors" });
   }
 };
 
-// 🏥 Get All Facilities (Pending + Approved)
+// 🏥 Get All Facilities (With Pagination & Optional Status Filter)
 export const getAllFacilities = async (req, res) => {
   try {
-    const facilities = await Facility.find();
-    res.status(200).json({ facilities });
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 50;
+    const skip = (page - 1) * limit;
+    
+    // Allow frontend to filter by status (e.g., ?status=pending)
+    const filter = req.query.status ? { status: req.query.status } : {};
+
+    const facilities = await Facility.find(filter)
+      .skip(skip)
+      .limit(limit)
+      .sort({ createdAt: -1 });
+
+    const total = await Facility.countDocuments(filter);
+
+    res.status(200).json({
+      success: true,
+      facilities,
+      pagination: {
+        currentPage: page,
+        totalPages: Math.ceil(total / limit),
+        totalFacilities: total,
+      },
+    });
   } catch (err) {
-    res.status(500).json({ message: "Error fetching facilities" });
+    console.error("Get Facilities Error:", err);
+    res.status(500).json({ success: false, message: "Error fetching facilities" });
   }
 };
 
@@ -58,18 +106,15 @@ export const getAllFacilities = async (req, res) => {
 export const approveFacility = async (req, res) => {
   try {
     const facility = await Facility.findById(req.params.id);
-    if (!facility) return res.status(404).json({ message: "Facility not found" });
+    if (!facility) return res.status(404).json({ success: false, message: "Facility not found" });
 
     facility.status = "approved";
-
-    // HISTORY LOGIC DELETED
-
     await facility.save();
 
-    res.status(200).json({ message: "Facility approved", facility });
+    res.status(200).json({ success: true, message: "Facility approved successfully", facility });
   } catch (err) {
     console.error("Facility Approval Error:", err);
-    res.status(500).json({ message: "Error approving facility" });
+    res.status(500).json({ success: false, message: "Error approving facility" });
   }
 };
 
@@ -77,21 +122,20 @@ export const approveFacility = async (req, res) => {
 export const rejectFacility = async (req, res) => {
   try {
     const facility = await Facility.findById(req.params.id);
-    if (!facility) return res.status(404).json({ message: "Facility not found" });
+    if (!facility) return res.status(404).json({ success: false, message: "Facility not found" });
 
     const { rejectionReason } = req.body;
-    if (!rejectionReason) return res.status(400).json({ message: "Rejection reason is required." });
+    if (!rejectionReason) {
+      return res.status(400).json({ success: false, message: "Rejection reason is required." });
+    }
 
     facility.status = "rejected";
     facility.rejectionReason = rejectionReason;
-
-    // HISTORY LOGIC DELETED
-
     await facility.save();
 
-    res.status(200).json({ message: "Facility rejected and status updated", facility });
+    res.status(200).json({ success: true, message: "Facility rejected successfully", facility });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Error rejecting facility" });
+    console.error("Facility Rejection Error:", err);
+    res.status(500).json({ success: false, message: "Error rejecting facility" });
   }
 };

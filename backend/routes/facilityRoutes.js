@@ -5,32 +5,82 @@ import {
   getProfile,
   updateProfile,
 } from "../controllers/facilityController.js";
-import { protectFacility } from "../middlewares/facilityMiddleware.js";
 
+// ✅ RECOMMENDED: Use unified middleware for centralized security
+import { protect, authorize } from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
 
-/**
- * @route   GET /api/facility/dashboard
- * @desc    Get facility dashboard stats
- * @access  Private (facility only)
- */
-router.get("/dashboard", protectFacility, getFacilityDashboard);
+// Middleware combo: Ensure user is logged in AND is a hospital or blood-lab
+const protectFacilityOnly = [protect, authorize("hospital", "blood-lab")];
 
 /**
- * @route   GET /api/facility/profile
- * @desc    Get facility profile details
- * @access  Private
+ * @swagger
+ * /api/facility/dashboard:
+ *   get:
+ *     summary: Get facility dashboard statistics
+ *     tags: [Facility]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Dashboard stats retrieved successfully
  */
-router.get("/profile", protectFacility, getProfile);
+router.get("/dashboard", protectFacilityOnly, getFacilityDashboard);
 
 /**
- * @route   PUT /api/facility/profile
- * @desc    Update facility profile
- * @access  Private
+ * @swagger
+ * /api/facility/profile:
+ *   get:
+ *     summary: Get authenticated facility's profile details
+ *     tags: [Facility]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Facility profile retrieved successfully
  */
-router.put("/profile", protectFacility, updateProfile);
+router.get("/profile", protectFacilityOnly, getProfile);
 
-router.get("/labs", protectFacility , getAllLabs);
+/**
+ * @swagger
+ * /api/facility/profile:
+ *   put:
+ *     summary: Update facility profile (name, phone, address, password, etc.)
+ *     tags: [Facility]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               phone:
+ *                 type: string
+ *               address:
+ *                 type: object
+ *               password:
+ *                 type: string
+ */
+router.put("/profile", protectFacilityOnly, updateProfile);
+
+/**
+ * @swagger
+ * /api/facility/labs:
+ *   get:
+ *     summary: Get all approved blood labs (Used by hospitals to request blood)
+ *     tags: [Facility]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of approved blood labs
+ */
+// Note: If only hospitals should see this, change authorize to authorize("hospital")
+router.get("/labs", protect, authorize("hospital", "blood-lab"), getAllLabs);
 
 export default router;

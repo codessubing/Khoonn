@@ -1,7 +1,14 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { toast } from "react-hot-toast";
-import { CheckCircle, XCircle, Clock, MapPin, Calendar } from "lucide-react";
+import { 
+  CheckCircle, 
+  XCircle, 
+  Clock, 
+  MapPin, 
+  Calendar, 
+  Loader2 
+} from "lucide-react";
 
 const HospitalRequestHistory = () => {
   const [requests, setRequests] = useState([]);
@@ -29,143 +36,184 @@ const HospitalRequestHistory = () => {
 
   const getStatusConfig = (status) => {
     const config = {
-      pending: { color: "bg-yellow-100 text-yellow-800", icon: Clock, label: "Pending" },
-      accepted: { color: "bg-green-100 text-green-800", icon: CheckCircle, label: "Accepted" },
-      rejected: { color: "bg-red-100 text-red-800", icon: XCircle, label: "Rejected" }
+      pending: { 
+        color: "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20", 
+        icon: Clock, 
+        label: "Pending" 
+      },
+      accepted: { 
+        color: "bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20", 
+        icon: CheckCircle, 
+        label: "Accepted" 
+      },
+      rejected: { 
+        color: "bg-destructive/10 text-destructive border-destructive/20", 
+        icon: XCircle, 
+        label: "Rejected" 
+      }
     };
     return config[status] || config.pending;
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-red-50 to-white p-6">
-        <div className="max-w-6xl mx-auto">
-          <div className="flex justify-center items-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
-            <span className="ml-3 text-gray-600">Loading history...</span>
-          </div>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          <p className="text-sm font-medium text-muted-foreground">Loading history...</p>
         </div>
       </div>
     );
   }
 
+  const totalRequests = requests.length;
+  const pendingRequests = requests.filter(r => r.status === "pending").length;
+  const acceptedRequests = requests.filter(r => r.status === "accepted").length;
+  const rejectedRequests = requests.filter(r => r.status === "rejected").length;
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50 to-white p-6">
-      <div className="max-w-6xl mx-auto">
+    <div className="min-h-screen bg-background p-4 sm:p-6 lg:p-8">
+      <div className="max-w-7xl mx-auto space-y-8">
         {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 bg-red-100 rounded-xl">
-              <Calendar className="w-6 h-6 text-red-600" />
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div className="flex items-center gap-4">
+            <div className="p-2.5 rounded-xl bg-primary/10">
+              <Calendar className="w-6 h-6 text-primary" />
             </div>
-            <h1 className="text-3xl font-bold text-gray-800">Request History</h1>
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight text-foreground">
+                Request History
+              </h1>
+              <p className="text-sm text-muted-foreground mt-1">
+                Track your blood request status and history
+              </p>
+            </div>
           </div>
-          <p className="text-gray-600">Track your blood request status and history</p>
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          <div className="bg-white p-4 rounded-xl shadow-lg border-l-4 border-l-green-400">
-            <div className="text-2xl font-bold text-gray-800">{requests.length}</div>
-            <div className="text-sm text-gray-600">Total Requests</div>
-          </div>
-          <div className="bg-white p-4 rounded-xl shadow-lg border-l-4 border-l-yellow-400">
-            <div className="text-2xl font-bold text-yellow-600">
-              {requests.filter(r => r.status === "pending").length}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="bg-card border border-border rounded-xl p-5">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2 rounded-lg bg-primary/10">
+                <Calendar className="w-4 h-4 text-primary" />
+              </div>
+              <span className="text-xs font-medium text-muted-foreground">Total Requests</span>
             </div>
-            <div className="text-sm text-gray-600">Pending</div>
+            <div className="text-2xl font-bold tracking-tight text-foreground">{totalRequests}</div>
           </div>
-          <div className="bg-white p-4 rounded-xl shadow-lg border-l-4 border-l-green-400">
-            <div className="text-2xl font-bold text-green-600">
-              {requests.filter(r => r.status === "accepted").length}
+          <div className="bg-card border border-border rounded-xl p-5">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2 rounded-lg bg-amber-500/10">
+                <Clock className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+              </div>
+              <span className="text-xs font-medium text-muted-foreground">Pending</span>
             </div>
-            <div className="text-sm text-gray-600">Accepted</div>
+            <div className="text-2xl font-bold tracking-tight text-foreground">{pendingRequests}</div>
           </div>
-          <div className="bg-white p-4 rounded-xl shadow-lg border-l-4 border-l-red-400">
-            <div className="text-2xl font-bold text-red-600">
-              {requests.filter(r => r.status === "rejected").length}
+          <div className="bg-card border border-border rounded-xl p-5">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2 rounded-lg bg-green-500/10">
+                <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400" />
+              </div>
+              <span className="text-xs font-medium text-muted-foreground">Accepted</span>
             </div>
-            <div className="text-sm text-gray-600">Rejected</div>
+            <div className="text-2xl font-bold tracking-tight text-foreground">{acceptedRequests}</div>
+          </div>
+          <div className="bg-card border border-border rounded-xl p-5">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2 rounded-lg bg-destructive/10">
+                <XCircle className="w-4 h-4 text-destructive" />
+              </div>
+              <span className="text-xs font-medium text-muted-foreground">Rejected</span>
+            </div>
+            <div className="text-2xl font-bold tracking-tight text-foreground">{rejectedRequests}</div>
           </div>
         </div>
 
         {/* Requests Table */}
-        <div className="bg-white rounded-2xl shadow-lg border border-red-100 overflow-hidden">
+        <div className="bg-card border border-border rounded-xl overflow-hidden">
           {requests.length === 0 ? (
-            <div className="text-center py-12">
-              <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-800 mb-2">No request history</h3>
-              <p className="text-gray-600">Your blood requests will appear here once you make them.</p>
+            <div className="text-center py-16">
+              <Calendar className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-foreground mb-2">No request history</h3>
+              <p className="text-sm text-muted-foreground">
+                Your blood requests will appear here once you make them.
+              </p>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="bg-gray-50 border-b">
-                    <th className="p-4 text-left font-semibold text-gray-700">Blood Lab</th>
-                    <th className="p-4 text-left font-semibold text-gray-700">Blood Type</th>
-                    <th className="p-4 text-left font-semibold text-gray-700">Units</th>
-                    <th className="p-4 text-left font-semibold text-gray-700">Status</th>
-                    <th className="p-4 text-left font-semibold text-gray-700">Request Date</th>
-                    <th className="p-4 text-left font-semibold text-gray-700">Processed Date</th>
+                  <tr className="bg-muted/50 border-b border-border">
+                    <th className="text-left p-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Blood Lab</th>
+                    <th className="text-left p-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Blood Type</th>
+                    <th className="text-left p-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Units</th>
+                    <th className="text-left p-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Status</th>
+                    <th className="text-left p-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Request Date</th>
+                    <th className="text-left p-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Processed Date</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="divide-y divide-border">
                   {requests.map((request) => {
                     const statusConfig = getStatusConfig(request.status);
                     const IconComponent = statusConfig.icon;
 
                     return (
-                      <tr key={request._id} className="border-b hover:bg-gray-50 transition-colors">
+                      <tr key={request._id} className="hover:bg-muted/50 transition-colors">
                         <td className="p-4">
                           <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
-                              <span className="font-semibold text-red-600">
+                            <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center shrink-0">
+                              <span className="font-semibold text-primary text-sm">
                                 {request.labId?.name?.charAt(0) || "L"}
                               </span>
                             </div>
-                            <div>
-                              <div className="font-medium text-gray-800">{request.labId?.name || "Unknown Lab"}</div>
-                              <div className="flex items-center gap-1 text-sm text-gray-500">
-                                <MapPin size={12} />
-                                {request.labId?.address?.city || "Unknown City"}
+                            <div className="min-w-0">
+                              <div className="font-medium text-foreground truncate">
+                                {request.labId?.name || "Unknown Lab"}
+                              </div>
+                              <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
+                                <MapPin size={12} className="shrink-0" />
+                                <span className="truncate">{request.labId?.address?.city || "Unknown City"}</span>
                               </div>
                             </div>
                           </div>
                         </td>
                         <td className="p-4">
-                          <span className="px-3 py-1 bg-red-100 text-red-800 rounded-full text-sm font-medium">
+                          <span className="px-2.5 py-1 bg-primary/10 text-primary border border-primary/20 rounded-full text-xs font-bold">
                             {request.bloodType}
                           </span>
                         </td>
                         <td className="p-4">
-                          <span className="text-lg font-semibold text-gray-800">{request.units}</span>
-                          <span className="text-sm text-gray-500 ml-1">units</span>
+                          <span className="text-base font-semibold text-foreground">{request.units}</span>
+                          <span className="text-xs text-muted-foreground ml-1">units</span>
                         </td>
                         <td className="p-4">
-                          <span className={`px-3 py-1 rounded-full text-sm font-medium flex items-center gap-1 ${statusConfig.color}`}>
-                            <IconComponent size={14} />
+                          <span className={`px-2.5 py-1 rounded-full text-xs font-medium flex items-center gap-1.5 border ${statusConfig.color}`}>
+                            <IconComponent size={12} />
                             {statusConfig.label}
                           </span>
                         </td>
-                        <td className="p-4 text-sm text-gray-600">
-                          {new Date(request.createdAt).toLocaleDateString()}
-                          <br />
-                          <span className="text-xs text-gray-400">
-                            {new Date(request.createdAt).toLocaleTimeString()}
-                          </span>
+                        <td className="p-4">
+                          <div className="text-sm text-foreground">
+                            {new Date(request.createdAt).toLocaleDateString()}
+                          </div>
+                          <div className="text-xs text-muted-foreground mt-0.5">
+                            {new Date(request.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </div>
                         </td>
-                        <td className="p-4 text-sm text-gray-600">
+                        <td className="p-4">
                           {request.processedAt ? (
                             <>
-                              {new Date(request.processedAt).toLocaleDateString()}
-                              <br />
-                              <span className="text-xs text-gray-400">
-                                {new Date(request.processedAt).toLocaleTimeString()}
-                              </span>
+                              <div className="text-sm text-foreground">
+                                {new Date(request.processedAt).toLocaleDateString()}
+                              </div>
+                              <div className="text-xs text-muted-foreground mt-0.5">
+                                {new Date(request.processedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              </div>
                             </>
                           ) : (
-                            <span className="text-gray-400">Not processed</span>
+                            <span className="text-sm text-muted-foreground">Not processed</span>
                           )}
                         </td>
                       </tr>

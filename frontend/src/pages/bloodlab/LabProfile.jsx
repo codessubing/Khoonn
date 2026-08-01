@@ -15,14 +15,12 @@ import {
   Heart,
   Droplet,
   Clock,
-  Tag,
   Building,
+  AlertCircle,
 } from "lucide-react";
 
-// NOTE: Using localStorage and hardcoded URL for API connection as per previous context.
 const API_BASE_URL = "/api";
 
-// Define a default structured object for operating hours
 const defaultOperatingHours = {
   weekdays: "",
   weekends: "",
@@ -35,7 +33,7 @@ const LabProfile = () => {
     name: "",
     phone: "",
     emergencyContact: "",
-    facilityCategory: "", // NEW FIELD ADDED
+    facilityCategory: "",
     address: {
       street: "",
       city: "",
@@ -43,29 +41,27 @@ const LabProfile = () => {
       pincode: "",
     },
     contactPerson: "",
-    operatingHours: defaultOperatingHours, // CHANGED TO OBJECT
+    operatingHours: defaultOperatingHours,
   });
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState({});
 
-  // Utility function to safely initialize operating hours as an object
   const initializeOperatingHours = (hoursData) => {
-    if (hoursData && typeof hoursData === 'object' && !Array.isArray(hoursData)) {
+    if (hoursData && typeof hoursData === "object" && !Array.isArray(hoursData)) {
       return {
         weekdays: hoursData.weekdays || "",
         weekends: hoursData.weekends || "",
         notes: hoursData.notes || "",
       };
     }
-    // If it was previously a string (like the old state suggested) or null, initialize to defaults
     return defaultOperatingHours;
   };
 
   const validateField = (name, value) => {
     const newErrors = { ...errors };
-    const path = name.includes('.') ? name : name;
+    const path = name.includes(".") ? name : name;
 
     switch (path) {
       case "phone":
@@ -83,17 +79,11 @@ const LabProfile = () => {
           delete newErrors["address.pincode"];
         }
         break;
-      // No validation for operatingHours fields for now, as they are free text
       default:
-        // Basic check for empty required fields if needed, but keeping it flexible
         break;
     }
 
-    // Clean up error if field becomes empty (except for specific validated fields)
-    if (
-      value === "" &&
-      !["phone", "emergencyContact", "address.pincode"].includes(path)
-    ) {
+    if (value === "" && !["phone", "emergencyContact", "address.pincode"].includes(path)) {
       delete newErrors[path];
     }
 
@@ -110,9 +100,7 @@ const LabProfile = () => {
       }
 
       const { data } = await axios.get(`${API_BASE_URL}/facility/profile`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
 
       if (data.success) {
@@ -121,7 +109,7 @@ const LabProfile = () => {
           name: data.facility.name || "",
           phone: data.facility.phone || "",
           emergencyContact: data.facility.emergencyContact || "",
-          facilityCategory: data.facility.facilityCategory || "", // NEW
+          facilityCategory: data.facility.facilityCategory || "",
           address: {
             street: data.facility.address?.street || "",
             city: data.facility.address?.city || "",
@@ -129,19 +117,16 @@ const LabProfile = () => {
             pincode: data.facility.address?.pincode || "",
           },
           contactPerson: data.facility.contactPerson || "",
-          operatingHours: initializeOperatingHours(data.facility.operatingHours), // Mapped to object
+          operatingHours: initializeOperatingHours(data.facility.operatingHours),
         });
       } else {
         throw new Error(data.message);
       }
     } catch (error) {
-      console.error("❌ Fetch Profile Error:", error);
+      console.error("Fetch Profile Error:", error);
       let message;
 
-      if (
-        error.message.includes("No authorization token found") ||
-        error.response?.status === 401
-      ) {
+      if (error.message.includes("No authorization token found") || error.response?.status === 401) {
         message = "Session expired or unauthorized. Please log in.";
         localStorage.removeItem("token");
         setFacility(null);
@@ -167,23 +152,16 @@ const LabProfile = () => {
     if (name.startsWith("address.")) {
       const key = name.split(".")[1];
       setFormData((prev) => {
-        const updatedData = {
-          ...prev,
-          address: { ...prev.address, [key]: value },
-        };
+        const updatedData = { ...prev, address: { ...prev.address, [key]: value } };
         validateField(name, value);
         return updatedData;
       });
     } else if (name.startsWith("operatingHours.")) {
       const key = name.split(".")[1];
-      setFormData((prev) => {
-        const updatedData = {
-          ...prev,
-          operatingHours: { ...prev.operatingHours, [key]: value },
-        };
-        // No specific validation for hours, just update state
-        return updatedData;
-      });
+      setFormData((prev) => ({
+        ...prev,
+        operatingHours: { ...prev.operatingHours, [key]: value },
+      }));
     } else {
       setFormData((prev) => {
         const updatedData = { ...prev, [name]: value };
@@ -201,10 +179,6 @@ const LabProfile = () => {
       return;
     }
     
-    // Prepare data payload, excluding internal state keys if necessary, 
-    // but current formData structure aligns with the necessary updates.
-    const payload = formData;
-
     try {
       setSaving(true);
       const token = localStorage.getItem("token");
@@ -214,15 +188,9 @@ const LabProfile = () => {
         return;
       }
 
-      const { data } = await axios.put(
-        `${API_BASE_URL}/facility/profile`,
-        payload,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const { data } = await axios.put(`${API_BASE_URL}/facility/profile`, formData, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
       if (data.success) {
         toast.success("Profile updated successfully!");
@@ -233,8 +201,8 @@ const LabProfile = () => {
         throw new Error(data.message);
       }
     } catch (error) {
-      console.error("❌ Update Profile Error:", error);
-      let message = error.response?.data?.message || "Update failed";
+      console.error("Update Profile Error:", error);
+      const message = error.response?.data?.message || "Update failed";
       toast.error(message);
 
       if (error.response?.data?.errors) {
@@ -253,7 +221,7 @@ const LabProfile = () => {
         name: facility.name || "",
         phone: facility.phone || "",
         emergencyContact: facility.emergencyContact || "",
-        facilityCategory: facility.facilityCategory || "", // NEW
+        facilityCategory: facility.facilityCategory || "",
         address: {
           street: facility.address?.street || "",
           city: facility.address?.city || "",
@@ -261,22 +229,42 @@ const LabProfile = () => {
           pincode: facility.address?.pincode || "",
         },
         contactPerson: facility.contactPerson || "",
-        operatingHours: initializeOperatingHours(facility.operatingHours), // Mapped to object
+        operatingHours: initializeOperatingHours(facility.operatingHours),
       });
     }
   };
 
+  const getInputClass = (fieldName, isEditing) => {
+    const hasError = errors[fieldName];
+    return `w-full px-4 py-2.5 bg-background border rounded-[var(--radius)] text-foreground text-sm transition-all focus:outline-none focus:ring-[3px] disabled:opacity-50 disabled:cursor-not-allowed ${
+      hasError
+        ? "border-destructive focus:border-destructive focus:ring-destructive/15"
+        : isEditing
+        ? "border-input focus:border-ring focus:ring-ring/15"
+        : "border-border bg-muted/50"
+    }`;
+  };
+
+  const getStatusBadge = (status) => {
+    const statusConfig = {
+      approved: { color: "bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20" },
+      pending: { color: "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20" },
+      rejected: { color: "bg-destructive/10 text-destructive border-destructive/20" },
+    };
+    const config = statusConfig[status] || statusConfig.pending;
+    return (
+      <span className={`px-2.5 py-1 rounded-full text-xs font-medium border ${config.color}`}>
+        {status?.charAt(0).toUpperCase() + status?.slice(1)}
+      </span>
+    );
+  };
+
   if (loading && !facility) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-red-50 to-white flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-pulse mb-4">
-            <Droplet className="w-12 h-12 text-red-500 mx-auto" />
-          </div>
-          <h2 className="text-xl font-semibold text-gray-700 mb-2">
-            Loading Laboratory Profile
-          </h2>
-          <p className="text-gray-500">Preparing your facility information...</p>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          <p className="text-sm font-medium text-muted-foreground">Loading Laboratory Profile...</p>
         </div>
       </div>
     );
@@ -284,19 +272,14 @@ const LabProfile = () => {
 
   if (!facility) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-red-50 to-white flex items-center justify-center">
-        <div className="text-center bg-white rounded-2xl shadow-lg border border-red-100 p-8">
-          <Droplet className="w-16 h-16 text-red-500 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-gray-800 mb-2">
-            Facility Profile Error
-          </h3>
-          <p className="text-gray-600 mb-4">
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <div className="text-center bg-card border border-border rounded-2xl p-8 max-w-sm w-full">
+          <Droplet className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-foreground mb-2">Facility Profile Error</h3>
+          <p className="text-sm text-muted-foreground mb-6">
             Could not load profile. Please ensure you are authenticated.
           </p>
-          <button
-            onClick={fetchProfile}
-            className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg transition-colors"
-          >
+          <button onClick={fetchProfile} className="btn-advanced w-full justify-center">
             Retry Loading
           </button>
         </div>
@@ -307,25 +290,25 @@ const LabProfile = () => {
   const hasErrors = Object.keys(errors).length > 0;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50 to-white p-6">
+    <div className="min-h-screen bg-background p-4 sm:p-6 lg:p-8">
       <Toaster />
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-6xl mx-auto space-y-6">
         
         {/* Header */}
-        <div className="bg-white rounded-2xl shadow-lg border border-red-100 p-6 mb-6">
+        <div className="bg-card border border-border rounded-xl p-6">
           <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
             <div className="flex items-center gap-4">
-              <div className="p-3 bg-red-100 rounded-xl">
-                <Droplet className="w-8 h-8 text-red-600" />
+              <div className="p-2.5 rounded-xl bg-primary/10">
+                <Droplet className="w-6 h-6 text-primary" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold text-gray-800">
+                <h1 className="text-2xl font-bold tracking-tight text-foreground">
                   {facility.name || "Laboratory Profile"}
                 </h1>
-                <p className="text-gray-600 mt-1 flex items-center gap-2">
-                  <FlaskConical size={16} className="text-red-500" />
+                <p className="text-sm text-muted-foreground mt-1 flex items-center gap-2">
+                  <FlaskConical size={16} className="text-primary" />
                   {facility.facilityCategory?.toUpperCase() || "BLOOD LAB"} • 
-                  <span className="font-mono text-sm">{facility.registrationNumber}</span>
+                  <span className="font-mono text-xs">{facility.registrationNumber}</span>
                 </p>
               </div>
             </div>
@@ -333,31 +316,21 @@ const LabProfile = () => {
             <div className="flex gap-3">
               {isEditing ? (
                 <>
-                  <button
-                    onClick={handleCancel}
-                    className="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg transition-colors border border-gray-300"
-                  >
-                    <X size={18} /> Cancel
+                  <button onClick={handleCancel} className="btn-ghost">
+                    <X size={16} /> Cancel
                   </button>
                   <button
                     onClick={handleSave}
                     disabled={saving || hasErrors}
-                    className="flex items-center gap-2 bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white px-4 py-2 rounded-lg transition-colors"
+                    className="btn-advanced disabled:opacity-70 disabled:cursor-not-allowed"
                   >
-                    {saving ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Save size={18} />
-                    )}
+                    {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save size={16} />}
                     Save Changes
                   </button>
                 </>
               ) : (
-                <button
-                  onClick={() => setIsEditing(true)}
-                  className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors"
-                >
-                  <Edit3 size={18} /> Edit Profile
+                <button onClick={() => setIsEditing(true)} className="btn-advanced">
+                  <Edit3 size={16} /> Edit Profile
                 </button>
               )}
             </div>
@@ -366,43 +339,31 @@ const LabProfile = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           
-          {/* Left Sidebar - Verification Details and Quick Contact */}
+          {/* Left Sidebar */}
           <div className="lg:col-span-1 space-y-6">
-            
             {/* Status Card */}
-            <div className="bg-white rounded-2xl shadow-lg border border-red-100 p-6">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                <Shield className="w-5 h-5 text-red-600" />
+            <div className="bg-card border border-border rounded-xl p-6">
+              <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                <Shield className="w-5 h-5 text-primary" />
                 Verification Status
               </h3>
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Status</span>
-                  <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                    facility.status === "approved"
-                      ? "bg-green-100 text-green-700"
-                      : facility.status === "pending"
-                      ? "bg-yellow-100 text-yellow-700"
-                      : "bg-red-100 text-red-700"
-                  }`}>
-                    {facility.status?.charAt(0).toUpperCase() + facility.status?.slice(1)}
-                  </span>
+                  <span className="text-sm text-muted-foreground">Status</span>
+                  {getStatusBadge(facility.status)}
                 </div>
-                
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Category</span>
-                  <span className="text-sm font-medium text-gray-800">{facility.facilityCategory || "N/A"}</span>
+                  <span className="text-sm text-muted-foreground">Category</span>
+                  <span className="text-sm font-medium text-foreground">{facility.facilityCategory || "N/A"}</span>
                 </div>
-                
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Registration</span>
-                  <span className="text-sm font-mono text-gray-800">{facility.registrationNumber}</span>
+                  <span className="text-sm text-muted-foreground">Registration</span>
+                  <span className="text-sm font-mono text-foreground">{facility.registrationNumber}</span>
                 </div>
-                
                 {facility.approvedAt && (
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Approved On</span>
-                    <span className="text-sm text-gray-800">
+                    <span className="text-sm text-muted-foreground">Approved On</span>
+                    <span className="text-sm text-foreground">
                       {new Date(facility.approvedAt).toLocaleDateString()}
                     </span>
                   </div>
@@ -410,27 +371,27 @@ const LabProfile = () => {
               </div>
             </div>
 
-            {/* Contact Quick Info */}
-            <div className="bg-white rounded-2xl shadow-lg border border-red-100 p-6">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                <Heart className="w-5 h-5 text-red-600" />
+            {/* Quick Contact */}
+            <div className="bg-card border border-border rounded-xl p-6">
+              <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                <Heart className="w-5 h-5 text-primary" />
                 Quick Contact
               </h3>
               <div className="space-y-3">
                 <div className="flex items-center gap-3 text-sm">
-                  <Mail className="w-4 h-4 text-red-500" />
-                  <span className="text-gray-600">{facility.email}</span>
+                  <Mail className="w-4 h-4 text-muted-foreground shrink-0" />
+                  <span className="text-foreground truncate">{facility.email}</span>
                 </div>
                 {facility.phone && (
                   <div className="flex items-center gap-3 text-sm">
-                    <Phone className="w-4 h-4 text-red-500" />
-                    <span className="text-gray-600">{facility.phone}</span>
+                    <Phone className="w-4 h-4 text-muted-foreground shrink-0" />
+                    <span className="text-foreground">{facility.phone}</span>
                   </div>
                 )}
                 {facility.emergencyContact && (
                   <div className="flex items-center gap-3 text-sm">
-                    <Phone className="w-4 h-4 text-red-500" />
-                    <span className="text-gray-600">Emergency: {facility.emergencyContact}</span>
+                    <Phone className="w-4 h-4 text-muted-foreground shrink-0" />
+                    <span className="text-foreground">Emergency: {facility.emergencyContact}</span>
                   </div>
                 )}
               </div>
@@ -439,52 +400,36 @@ const LabProfile = () => {
 
           {/* Main Content - Editable Form */}
           <div className="lg:col-span-2">
-            <div className="bg-white rounded-2xl shadow-lg border border-red-100 p-6">
+            <div className="bg-card border border-border rounded-xl p-6 space-y-8">
               
-              {/* General Facility Details (Name, Category) */}
-              <div className="mb-8">
-                <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                  <Building className="w-5 h-5 text-red-600" />
+              {/* General Facility Details */}
+              <div>
+                <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                  <Building className="w-5 h-5 text-primary" />
                   Facility Profile
                 </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  
-                  {/* Name Input */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Facility Name
-                    </label>
+                    <label className="block text-sm font-medium text-foreground mb-1.5">Facility Name</label>
                     <input
                       type="text"
                       name="name"
                       value={formData.name}
                       onChange={handleChange}
                       disabled={!isEditing}
-                      className={`w-full px-4 py-3 rounded-xl border ${
-                        isEditing
-                          ? "border-gray-300 bg-white focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                          : "bg-gray-50 border-gray-200"
-                      }`}
+                      className={getInputClass("name", isEditing)}
                       placeholder="e.g., Central Diagnostics Lab"
                     />
                   </div>
-
-                  {/* Category Input */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Facility Category
-                    </label>
+                    <label className="block text-sm font-medium text-foreground mb-1.5">Facility Category</label>
                     <input
                       type="text"
                       name="facilityCategory"
                       value={formData.facilityCategory}
                       onChange={handleChange}
                       disabled={!isEditing}
-                      className={`w-full px-4 py-3 rounded-xl border ${
-                        isEditing
-                          ? "border-gray-300 bg-white focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                          : "bg-gray-50 border-gray-200"
-                      }`}
+                      className={getInputClass("facilityCategory", isEditing)}
                       placeholder="e.g., Blood Lab, Radiology Center"
                     />
                   </div>
@@ -492,75 +437,55 @@ const LabProfile = () => {
               </div>
 
               {/* Contact Information */}
-              <div className="mb-8">
-                <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                  <User className="w-5 h-5 text-red-600" />
+              <div>
+                <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                  <User className="w-5 h-5 text-primary" />
                   Contact Information
                 </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  
-                  {/* Phone Number */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Phone Number
-                    </label>
+                    <label className="block text-sm font-medium text-foreground mb-1.5">Phone Number</label>
                     <input
                       type="tel"
                       name="phone"
                       value={formData.phone}
                       onChange={handleChange}
                       disabled={!isEditing}
-                      className={`w-full px-4 py-3 rounded-xl border ${
-                        isEditing
-                          ? "border-gray-300 bg-white focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                          : "bg-gray-50 border-gray-200"
-                      } ${errors.phone ? "border-red-500" : ""}`}
+                      className={getInputClass("phone", isEditing)}
                       placeholder="10-digit phone number"
                     />
                     {errors.phone && (
-                      <p className="text-red-500 text-xs mt-2">{errors.phone}</p>
+                      <p className="text-destructive text-xs mt-1.5 flex items-center gap-1.5">
+                        <AlertCircle size={14} /> {errors.phone}
+                      </p>
                     )}
                   </div>
-
-                  {/* Emergency Contact */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Emergency Contact
-                    </label>
+                    <label className="block text-sm font-medium text-foreground mb-1.5">Emergency Contact</label>
                     <input
                       type="tel"
                       name="emergencyContact"
                       value={formData.emergencyContact}
                       onChange={handleChange}
                       disabled={!isEditing}
-                      className={`w-full px-4 py-3 rounded-xl border ${
-                        isEditing
-                          ? "border-gray-300 bg-white focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                          : "bg-gray-50 border-gray-200"
-                      } ${errors.emergencyContact ? "border-red-500" : ""}`}
+                      className={getInputClass("emergencyContact", isEditing)}
                       placeholder="Emergency contact number"
                     />
                     {errors.emergencyContact && (
-                      <p className="text-red-500 text-xs mt-2">{errors.emergencyContact}</p>
+                      <p className="text-destructive text-xs mt-1.5 flex items-center gap-1.5">
+                        <AlertCircle size={14} /> {errors.emergencyContact}
+                      </p>
                     )}
                   </div>
-
-                  {/* Contact Person */}
                   <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Contact Person
-                    </label>
+                    <label className="block text-sm font-medium text-foreground mb-1.5">Contact Person</label>
                     <input
                       type="text"
                       name="contactPerson"
                       value={formData.contactPerson}
                       onChange={handleChange}
                       disabled={!isEditing}
-                      className={`w-full px-4 py-3 rounded-xl border ${
-                        isEditing
-                          ? "border-gray-300 bg-white focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                          : "bg-gray-50 border-gray-200"
-                      }`}
+                      className={getInputClass("contactPerson", isEditing)}
                       placeholder="Primary contact person name"
                     />
                   </div>
@@ -568,109 +493,87 @@ const LabProfile = () => {
               </div>
 
               {/* Address Information */}
-              <div className="mb-8">
-                <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                  <MapPin className="w-5 h-5 text-red-600" />
+              <div>
+                <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                  <MapPin className="w-5 h-5 text-primary" />
                   Facility Address
                 </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {["street", "city", "state", "pincode"].map((field) => (
-                    <div key={field} className={field === "street" ? "md:col-span-2" : ""}>
-                      <label className="block text-sm font-medium text-gray-700 mb-2 capitalize">
-                        {field === "pincode" ? "PIN Code" : field}
-                      </label>
-                      <input
-                        type={field === "pincode" ? "number" : "text"}
-                        name={`address.${field}`}
-                        value={formData.address?.[field] || ""}
-                        onChange={handleChange}
-                        disabled={!isEditing}
-                        className={`w-full px-4 py-3 rounded-xl border ${
-                          isEditing
-                            ? "border-gray-300 bg-white focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                            : "bg-gray-50 border-gray-200"
-                        } ${
-                          field === "pincode" && errors["address.pincode"] ? "border-red-500" : ""
-                        }`}
-                        placeholder={`Enter ${field === "pincode" ? "PIN code" : field}`}
-                      />
-                      {field === "pincode" && errors["address.pincode"] && (
-                        <p className="text-red-500 text-xs mt-2">{errors["address.pincode"]}</p>
-                      )}
-                    </div>
-                  ))}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  {["street", "city", "state", "pincode"].map((field) => {
+                    const fieldName = field === "pincode" ? "address.pincode" : `address.${field}`;
+                    return (
+                      <div key={field} className={field === "street" ? "md:col-span-2" : ""}>
+                        <label className="block text-sm font-medium text-foreground mb-1.5 capitalize">
+                          {field === "pincode" ? "PIN Code" : field}
+                        </label>
+                        <input
+                          type="text"
+                          inputMode={field === "pincode" ? "numeric" : "text"}
+                          name={`address.${field}`}
+                          value={formData.address?.[field] || ""}
+                          onChange={handleChange}
+                          disabled={!isEditing}
+                          className={getInputClass(fieldName, isEditing)}
+                          placeholder={`Enter ${field === "pincode" ? "PIN code" : field}`}
+                          maxLength={field === "pincode" ? 6 : undefined}
+                        />
+                        {field === "pincode" && errors["address.pincode"] && (
+                          <p className="text-destructive text-xs mt-1.5 flex items-center gap-1.5">
+                            <AlertCircle size={14} /> {errors["address.pincode"]}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
-              {/* Operating Hours (Structured Object) */}
-              <div className="mb-8">
-                <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                  <Clock className="w-5 h-5 text-red-600" />
+              {/* Operating Hours */}
+              <div>
+                <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                  <Clock className="w-5 h-5 text-primary" />
                   Operating Hours
                 </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  
-                  {/* Weekdays */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Weekdays (e.g., Mon - Fri)
-                    </label>
+                    <label className="block text-sm font-medium text-foreground mb-1.5">Weekdays (e.g., Mon - Fri)</label>
                     <input
                       type="text"
                       name="operatingHours.weekdays"
                       value={formData.operatingHours.weekdays}
                       onChange={handleChange}
                       disabled={!isEditing}
-                      className={`w-full px-4 py-3 rounded-xl border ${
-                        isEditing
-                          ? "border-gray-300 bg-white focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                          : "bg-gray-50 border-gray-200"
-                      }`}
+                      className={getInputClass("operatingHours.weekdays", isEditing)}
                       placeholder="e.g., 9:00 AM to 5:00 PM"
                     />
                   </div>
-
-                  {/* Weekends */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Weekends (e.g., Sat - Sun)
-                    </label>
+                    <label className="block text-sm font-medium text-foreground mb-1.5">Weekends (e.g., Sat - Sun)</label>
                     <input
                       type="text"
                       name="operatingHours.weekends"
                       value={formData.operatingHours.weekends}
                       onChange={handleChange}
                       disabled={!isEditing}
-                      className={`w-full px-4 py-3 rounded-xl border ${
-                        isEditing
-                          ? "border-gray-300 bg-white focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                          : "bg-gray-50 border-gray-200"
-                      }`}
+                      className={getInputClass("operatingHours.weekends", isEditing)}
                       placeholder="e.g., 9:00 AM to 1:00 PM or Closed"
                     />
                   </div>
-
-                  {/* Notes */}
                   <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Additional Notes (e.g., Emergency services)
-                    </label>
+                    <label className="block text-sm font-medium text-foreground mb-1.5">Additional Notes</label>
                     <textarea
                       name="operatingHours.notes"
                       value={formData.operatingHours.notes}
                       onChange={handleChange}
                       disabled={!isEditing}
-                      rows={2}
-                      className={`w-full px-4 py-3 rounded-xl border ${
-                        isEditing
-                          ? "border-gray-300 bg-white focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                          : "bg-gray-50 border-gray-200"
-                      }`}
+                      rows={3}
+                      className={`${getInputClass("operatingHours.notes", isEditing)} resize-none`}
                       placeholder="e.g., Emergency services available 24/7."
                     />
                   </div>
                 </div>
               </div>
+
             </div>
           </div>
         </div>

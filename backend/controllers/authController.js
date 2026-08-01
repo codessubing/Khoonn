@@ -9,10 +9,10 @@ import jwt from "jsonwebtoken";
  */
 export const register = async (req, res) => {
   try {
-    const { role } = req.body; // donor | hospital | blood-lab
+    const { role } = req.body; 
 
     if (!role) {
-      return res.status(400).json({ message: "Role is required" });
+      return res.status(400).json({ success: false, message: "Role is required" });
     }
 
     let user;
@@ -22,29 +22,37 @@ export const register = async (req, res) => {
     } else if (role === "hospital" || role === "blood-lab") {
       user = await Facility.create(req.body);
     } else {
-      return res.status(400).json({ message: "Invalid role" });
+      return res.status(400).json({ success: false, message: "Invalid role" });
     }
 
-    // Decide redirect based on role
-    const redirect =
-      role === "donor"
-        ? "/donor/dashboard"
-        : "/"; // hospital/lab back to home after registration
+    const redirect = role === "donor" ? "/donor" : "/";
 
     res.status(201).json({
       success: true,
       message:
         role === "donor"
-          ? "Donor registered successfully! Redirecting to dashboard..."
+          ? "Donor registered successfully! Redirecting to login..."
           : "Facility registered successfully! Please wait for admin approval.",
       user: { id: user._id, email: user.email, role: user.role },
       redirect,
     });
   } catch (error) {
     console.error("❌ Registration Error:", error);
-    res
-      .status(500)
-      .json({ message: "Registration failed", error: error.message });
+    
+    if (error.name === "ValidationError") {
+      const errorMessages = Object.values(error.errors).map(err => err.message);
+      return res.status(400).json({ 
+        success: false,
+        message: "Validation failed", 
+        errors: errorMessages 
+      });
+    }
+
+    if (error.code === 11000) {
+      return res.status(400).json({ success: false, message: "Email already exists" });
+    }
+
+    res.status(500).json({ success: false, message: "Registration failed", error: error.message });
   }
 };
 
@@ -55,67 +63,46 @@ export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // 👇 CRUCIAL DEBUG LOGS: See EXACTLY what the frontend is sending 👇
-    console.log("📥 INCOMING EMAIL:", JSON.stringify(email));
-    console.log("📥 INCOMING PASSWORD:", JSON.stringify(password));
-    console.log("📥 INCOMING PASSWORD LENGTH:", password ? password.length : 0);
-    // 👆 CRUCIAL DEBUG LOGS 👆
-
     if (!email || !password) {
-      return res.status(400).json({ message: "Email and password are required" });
+      return res.status(400).json({ success: false, message: "Email and password are required" });
     }
 
-    // Find user in any model
     let user =
       (await Donor.findOne({ email }).select("+password")) ||
       (await Admin.findOne({ email }).select("+password")) ||
       (await Facility.findOne({ email }).select("+password"));
 
     if (!user) {
-      console.log(`❌ User not found for email: ${email}`);
-      return res.status(404).json({ message: "User not found" });
+      return res.status(404).json({ success: false, message: "User not found" });
     }
 
-    console.log(`✅ User found: ${email}, Role: ${user.role}`);
-    console.log("🔍 DEBUG - Password in DB:", user.password);
-    console.log("🔍 DEBUG - Is it hashed (starts with $2)?:", user.password.startsWith('$2'));
-
-    // Compare password with trim for consistency
     const isMatch = await bcrypt.compare(password.trim(), user.password);
 
     if (!isMatch) {
-      console.log(`❌ Password mismatch for user: ${email}`);
-      return res.status(401).json({ message: "Invalid credentials" });
+      return res.status(401).json({ success: false, message: "Invalid credentials" });
     }
 
-    console.log(`✅ Password verified for user: ${email}`);
-
-    // 🚫 If facility not approved yet
     if (user instanceof Facility) {
       if (user.status === "pending") {
         return res.status(403).json({
           success: false,
-          message:
-            "Your account is awaiting admin approval. Please wait before logging in.",
+          message: "Your account is awaiting admin approval. Please wait before logging in.",
         });
       }
       if (user.status === "rejected") {
         return res.status(403).json({
           success: false,
-          message:
-            "Your registration has been rejected by admin. Contact support for details.",
+          message: "Your registration has been rejected by admin. Contact support for details.",
         });
       }
     }
 
-    // ✅ Create token
     const token = jwt.sign(
       { id: user._id, role: user.role },
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
 
-    // Save last login
     user.lastLogin = new Date();
     if (user instanceof Facility) {
       user.history.push({
@@ -127,7 +114,6 @@ export const login = async (req, res) => {
     }
     await user.save();
 
-    // 🎯 Redirect logic
     let redirect = "/";
     if (user.role === "donor") redirect = "/donor";
     else if (user.role === "hospital") redirect = "/hospital";
@@ -143,9 +129,7 @@ export const login = async (req, res) => {
     });
   } catch (error) {
     console.error("🚨 Login Error:", error);
-    res
-      .status(500)
-      .json({ message: "Login failed", error: error.message });
+    res.status(500).json({ success: false, message: "Login failed", error: error.message });
   }
 };
 
@@ -154,21 +138,30 @@ export const login = async (req, res) => {
  */
 export const getProfile = async (req, res) => {
   try {
-    let user;
-    if (req.user.role === "donor") {
-      user = await Donor.findById(req.user.id).select("-password");
-    } else if (req.user.role === "admin") {
-      user = await Admin.findById(req.user.id).select("-password");
-    } else {
-      user = await Facility.findById(req.user.id).select("-password");
+    // ✅ FIX: Safely grab the ID whether the middleware named it 'id' or '_id'
+    const userId = req.user._id || req.user.id;
+    const userRole = req.user.role;
+
+    if (!userId) {
+      return res.status(401).json({ success: false, message: "Invalid user data in request" });
     }
 
-    if (!user) return res.status(404).json({ message: "User not found" });
+    let user;
+    if (userRole === "donor") {
+      user = await Donor.findById(userId).select("-password");
+    } else if (userRole === "admin") {
+      user = await Admin.findById(userId).select("-password");
+    } else {
+      user = await Facility.findById(userId).select("-password");
+    }
 
-    res.status(200).json({ user });
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    res.status(200).json({ success: true, user });
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Error fetching profile", error: error.message });
+    console.error("Profile Fetch Error:", error);
+    res.status(500).json({ success: false, message: "Error fetching profile", error: error.message });
   }
 };

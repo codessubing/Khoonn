@@ -40,14 +40,7 @@ export const updateProfile = async (req, res) => {
   session.startTransaction();
 
   try {
-    console.log("📝 Facility profile update request:", {
-      userId: req.user._id,
-      updates: Object.keys(req.body)
-    });
-
-    const updates = { ...req.body };
-    // The user ID is expected to be attached to the request object via middleware (e.g., auth middleware)
-    const facilityId = req.user._id;
+    const facilityId = req.user.id; // Standardized to req.user.id from JWT payload
 
     // Validate facility exists
     const existingFacility = await Facility.findById(facilityId).session(session);
@@ -59,11 +52,12 @@ export const updateProfile = async (req, res) => {
       });
     }
 
+    const updates = { ...req.body };
+
     // Define allowed fields for update by the facility user
     const allowedFields = [
       "name", "phone", "emergencyContact", "operatingHours",
-      "services", "description", "website", "contactPerson",
-      "password" // Allowing password update via the same endpoint
+      "services", "description", "website", "contactPerson", "password"
     ];
 
     // Filter updates to only include allowed fields
@@ -74,11 +68,10 @@ export const updateProfile = async (req, res) => {
       }
     });
 
-    // Handle address updates separately to merge with existing data
+    // Handle address updates separately to merge with existing data safely
     if (updates.address && typeof updates.address === 'object') {
-      // Merge new address fields with existing ones to avoid accidental deletion
       filteredUpdates.address = {
-        ...existingFacility.address.toObject(), // Use toObject() for Mongoose subdocuments
+        ...existingFacility.address.toObject(), 
         ...updates.address
       };
     }
@@ -96,38 +89,34 @@ export const updateProfile = async (req, res) => {
       filteredUpdates.password = await bcrypt.hash(updates.password, salt);
     }
 
-    // Update facility in MongoDB
-    const updatedFacility = await Facility.findByIdAndUpdate(
-      facilityId,
-      {
-        ...filteredUpdates,
-        // Log the profile update event in history
-        $push: {
-          history: {
+    // ✅ OPTIMIZATION: Use $push with $each and $slice to keep history at max 50 items atomically
+    const updatePayload = {
+      ...filteredUpdates,
+      $push: {
+        history: {
+          $each: [{
             eventType: "Profile Update",
             description: "Facility profile updated by user",
             date: new Date(),
-          }
+          }],
+          $slice: -50 // Keeps only the last 50 history entries
         }
-      },
+      }
+    };
+
+    // Update facility in MongoDB
+    const updatedFacility = await Facility.findByIdAndUpdate(
+      facilityId,
+      updatePayload,
       {
         new: true,
         runValidators: true,
         session,
-        // Exclude sensitive fields from the returned object
         select: "-password -__v"
       }
     );
 
-    // Trim history if too long (optional safety feature)
-    if (updatedFacility.history.length > 50) {
-      updatedFacility.history = updatedFacility.history.slice(-50);
-      await updatedFacility.save({ session });
-    }
-
     await session.commitTransaction();
-
-    console.log("✅ Facility profile updated successfully:", updatedFacility._id);
 
     res.status(200).json({
       success: true,
@@ -143,30 +132,30 @@ export const updateProfile = async (req, res) => {
     let validationErrors = {};
 
     if (error.name === 'ValidationError') {
-      // Format Mongoose validation errors for frontend consumption
       for (let field in error.errors) {
         validationErrors[field] = error.errors[field].message;
       }
       errorMessage = "Validation failed: Please check your input.";
     }
 
-    res.status(400).json({ // Use 400 for validation errors
+    res.status(400).json({
       success: false,
       message: errorMessage,
-      errors: validationErrors, // Send detailed errors to frontend
+      errors: validationErrors,
       detail: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   } finally {
     session.endSession();
   }
 };
+
 /**
  * @desc Facility dashboard overview
  * @route GET /api/facility/dashboard
  */
 export const getFacilityDashboard = async (req, res) => {
   try {
-    const facility = await Facility.findById(req.user._id)
+    const facility = await Facility.findById(req.user.id)
       .select("name history facilityType")
       .lean();
 
@@ -177,18 +166,21 @@ export const getFacilityDashboard = async (req, res) => {
       });
     }
 
-    // Calculate stats (you'll replace these with actual model queries)
-    const totalCamps = facility.history.filter(h => h.eventType === "Blood Camp").length;
-    const recentHistory = facility.history
+    // ✅ SAFETY: Fallback to empty array in case history is undefined
+    const history = facility.history || [];
+
+    const totalCamps = history.filter(h => h.eventType === "Blood Camp").length;
+    
+    const recentHistory = history
       .sort((a, b) => new Date(b.date) - new Date(a.date))
       .slice(0, 5);
 
     const dashboardData = {
       totalCamps,
-      upcomingCamps: 2, // Replace with: await Camp.countDocuments({ facility: facilityId, date: { $gte: new Date() } })
-      bloodSlots: 10, // Replace with: await Slot.countDocuments({ facility: facilityId, status: 'available' })
-      activeRequests: 4, // Replace with: await Request.countDocuments({ facility: facilityId, status: 'pending' })
-      totalHistory: facility.history.length,
+      upcomingCamps: 2, // TODO: Replace with actual Camp model query
+      bloodSlots: 10,   // TODO: Replace with actual Slot model query
+      activeRequests: 4,// TODO: Replace with actual Request model query
+      totalHistory: history.length,
       recentHistory,
     };
 
@@ -207,12 +199,16 @@ export const getFacilityDashboard = async (req, res) => {
   }
 };
 
+/**
+ * @desc Get all approved blood labs for hospitals to request from
+ * @route GET /api/facility/labs
+ */
 export const getAllLabs = async (req, res) => {
   try {
     const labs = await Facility.find({ 
       facilityType: "blood-lab", 
       status: "approved" 
-    }).select("name email phone address operatingHours");
+    }).select("name email phone address operatingHours").lean();
 
     res.status(200).json({ 
       success: true, 
@@ -225,4 +221,4 @@ export const getAllLabs = async (req, res) => {
       message: "Error fetching blood labs" 
     });
   }
-}
+};

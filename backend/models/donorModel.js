@@ -8,7 +8,7 @@ const donorSchema = new mongoose.Schema(
       type: String,
       required: [true, "Full name is required"],
       trim: true,
-      maxlength: [200, "Name cannot exceed 200 characters"],
+      maxlength: [100, "Name cannot exceed 100 characters"],
     },
     email: {
       type: String,
@@ -16,34 +16,37 @@ const donorSchema = new mongoose.Schema(
       unique: true,
       lowercase: true,
       trim: true,
-      match: [/^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/, "Please enter a valid email"],
+      match: [/^\S+@\S+\.\S+$/, "Please enter a valid email address"],
     },
     password: {
       type: String,
       required: [true, "Password is required"],
       minlength: [6, "Password must be at least 6 characters"],
-      select: false, // 🔑 IMPORTANT: Prevents password from being returned in queries by default
+      select: false, // 🔑 IMPORTANT: Prevents password from being returned in queries
     },
     phone: {
       type: String,
       required: [true, "Phone number is required"],
-      match: [/^[6-9][0-9]{9}$/, "Please enter a valid 10-digit phone number"],
+      // ✅ FIXED: Nepal phone numbers start with 9 (e.g., 98XXXXXXXX)
+      match: [/^[9][0-9]{9}$/, "Please enter a valid 10-digit Nepal phone number"],
     },
     role: {
       type: String,
       default: "donor",
-      enum: ["donor"], // Ensure role is restricted
+      enum: ["donor"],
     },
 
     // 📍 Location
     address: {
-      street: { type: String, required: [true, "Street address is required"] },
-      city: { type: String, required: [true, "City is required"] },
-      state: { type: String, required: [true, "State is required"] },
+      street: { type: String, required: [true, "Street address is required"], trim: true },
+      city: { type: String, required: [true, "City is required"], trim: true },
+      state: { type: String, required: [true, "Province/State is required"], trim: true },
       pincode: {
         type: String,
         required: [true, "Pincode is required"],
-        match: [/^[1-9][0-9]{5}$/, "Please enter a valid 6-digit pincode"],
+        // ✅ FIXED: Updated to 5-digit regex for Nepal postal codes (e.g., 32900)
+        match: [/^[0-9]{5}$/, "Please enter a valid 5-digit postal code"],
+        trim: true,
       },
     },
 
@@ -51,7 +54,10 @@ const donorSchema = new mongoose.Schema(
     bloodGroup: {
       type: String,
       required: [true, "Blood group is required"],
-      enum: ["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"],
+      enum: {
+        values: ["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"],
+        message: "{VALUE} is not a valid blood group"
+      },
     },
     age: {
       type: Number,
@@ -61,63 +67,87 @@ const donorSchema = new mongoose.Schema(
     },
     gender: {
       type: String,
-      enum: ["Male", "Female", "Other"],
+      enum: {
+        values: ["Male", "Female", "Other"],
+        message: "{VALUE} is not a valid gender"
+      },
       required: [true, "Gender is required"],
     },
-    weight: {
-      type: Number,
-      min: [45, "Minimum weight should be 45kg to donate blood"],
+    
+    // ✅ ADDED: Matches the nested object sent from frontend/controller
+    healthInfo: {
+      weight: { 
+        type: Number, 
+        min: [45, "Minimum weight should be 45kg to donate blood"] 
+      },
+      height: { type: Number },
+      hasDiseases: { type: Boolean, default: false },
+      diseaseDetails: { type: String, trim: true }
     },
-    lastDonationDate: { type: Date }, // Automatically updated by history entry
 
-    // This field can be used for manual/medical override, separate from the 90-day cooldown calculated by the virtual
+    lastDonationDate: { type: Date },
+
+    // Manual/medical override, separate from the 90-day cooldown virtual
     eligibleToDonate: { type: Boolean, default: true },
 
-    // 🧾 Documents (optional for verification)
-    idProof: {
-      url: String,
-      filename: String,
-      uploadedAt: { type: Date, default: Date.now },
-    },
-
-    // 📜 Donation History (for admin + donor profile)
+    // 📜 Donation History
     donationHistory: [
       {
         donationDate: { type: Date, default: Date.now },
-        facility: { type: mongoose.Schema.Types.ObjectId, ref: "Facility" }, // Reference to the Blood Bank/Facility
+        facility: { type: mongoose.Schema.Types.ObjectId, ref: "Facility" },
         bloodGroup: {
           type: String,
           enum: ["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"],
         },
-        quantity: { type: Number, default: 1 }, // Assuming 1 unit/pint
-        remarks: String,
+        quantity: { type: Number, default: 1, min: 1 },
+        remarks: { type: String, trim: true },
         verified: { type: Boolean, default: false },
       },
     ],
 
+    // ✅ ADDED: Matches the array pushed to in hospitalController.js
+    contactHistory: [
+      {
+        contactedBy: { type: mongoose.Schema.Types.ObjectId, ref: "Facility" },
+        contactDate: { type: Date, default: Date.now },
+        contactType: { type: String, enum: ["hospital", "blood-lab"], default: "hospital" }
+      }
+    ],
+
     // 🔐 Security & Access
-    lastLogin: Date,
+    lastLogin: { type: Date, default: null },
     loginAttempts: { type: Number, default: 0 },
-    lockUntil: Date,
+    lockUntil: { type: Date },
     isActive: { type: Boolean, default: true },
   },
-  { timestamps: true }
+  { 
+    timestamps: true,
+    // ✅ CRITICAL: Expose virtuals (like isEligible) in JSON responses
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
+  }
 );
 
 // 🔐 Pre-save hook: Hash password before saving if it's new or modified
 donorSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
 
-  // Use a consistent salt round value (e.g., 12)
-  const salt = await bcrypt.genSalt(12);
-  this.password = await bcrypt.hash(this.password.trim(), salt);
-  next();
+  try {
+    const salt = await bcrypt.genSalt(12);
+    this.password = await bcrypt.hash(this.password.trim(), salt);
+    next();
+  } catch (error) {
+    next(error);
+  }
 });
 
 // 🧠 Instance Method: Compare password
 donorSchema.methods.comparePassword = async function (candidatePassword) {
-  // Compares the given password with the hashed password stored in the database
-  return await bcrypt.compare(candidatePassword.trim(), this.password);
+  try {
+    return await bcrypt.compare(candidatePassword.trim(), this.password);
+  } catch (error) {
+    throw new Error("Password comparison failed");
+  }
 };
 
 // 🧩 Virtual: Calculate 90-day donation eligibility based on last donation date
@@ -129,6 +159,10 @@ donorSchema.virtual("isEligible").get(function () {
   return diff >= 90; // Standard 90-day gap rule
 });
 
+// Optional: Add indexes for faster queries
+donorSchema.index({ email: 1 });
+donorSchema.index({ phone: 1 });
+donorSchema.index({ bloodGroup: 1, lastDonationDate: 1 }); // Speeds up donor search
 
 const Donor = mongoose.model("Donor", donorSchema);
 export default Donor;

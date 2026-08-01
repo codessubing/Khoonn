@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Calendar,
   Clock,
@@ -14,6 +14,8 @@ import {
   CheckCircle,
   XCircle,
   MoreVertical,
+  Loader2,
+  AlertCircle,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 
@@ -42,7 +44,6 @@ const BloodCamps = () => {
     cancelled: 0,
     total: 0,
   });
-
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -55,45 +56,23 @@ const BloodCamps = () => {
     pincode: "",
     expectedDonors: "",
   });
-
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [actionMenu, setActionMenu] = useState(null);
 
   const token = localStorage.getItem("token");
-  // Fixed API URL - removed /blood-lab if it doesn't exist
   const API_URL = `${import.meta.env.VITE_API_URL || ""}/api/blood-lab`;
 
-  console.log("🔧 BloodCamps Component State:", {
-    campsCount: camps.length,
-    loading,
-    showForm,
-    editingCamp: editingCamp?._id,
-    filters,
-    pagination,
-    stats,
-    token: token ? "Present" : "Missing",
+  const calculateStats = (campsData) => ({
+    upcoming: campsData.filter((camp) => camp.status === "Upcoming").length,
+    ongoing: campsData.filter((camp) => camp.status === "Ongoing").length,
+    completed: campsData.filter((camp) => camp.status === "Completed").length,
+    cancelled: campsData.filter((camp) => camp.status === "Cancelled").length,
+    total: campsData.length,
   });
 
-  // Calculate stats from camps data
-  const calculateStats = (campsData) => {
-    console.log("📊 Calculating stats from camps:", campsData);
-    const stats = {
-      upcoming: campsData.filter((camp) => camp.status === "Upcoming").length,
-      ongoing: campsData.filter((camp) => camp.status === "Ongoing").length,
-      completed: campsData.filter((camp) => camp.status === "Completed").length,
-      cancelled: campsData.filter((camp) => camp.status === "Cancelled").length,
-      total: campsData.length,
-    };
-    console.log("📈 Calculated stats:", stats);
-    return stats;
-  };
-
-  // Validation function
   const validateForm = (data) => {
-    console.log("📋 Validating form data:", data);
     const newErrors = {};
-
     if (!data.title?.trim()) newErrors.title = "Title is required";
     if (!data.date) newErrors.date = "Date is required";
     if (!data.startTime) newErrors.startTime = "Start time is required";
@@ -106,29 +85,28 @@ const BloodCamps = () => {
     if (!data.expectedDonors || data.expectedDonors < 1)
       newErrors.expectedDonors = "Expected donors must be at least 1";
 
-    // Date validation
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const selectedDate = new Date(data.date);
-    if (selectedDate < today) {
-      newErrors.date = "Date cannot be in the past";
-    }
-
-    // Time validation
-    if (data.startTime && data.endTime && data.startTime >= data.endTime) {
+    if (selectedDate < today) newErrors.date = "Date cannot be in the past";
+    if (data.startTime && data.endTime && data.startTime >= data.endTime)
       newErrors.endTime = "End time must be after start time";
-    }
 
-    console.log("❌ Validation errors:", newErrors);
     return newErrors;
   };
 
-  // Fetch blood camps with filters
+  const getInputClass = (fieldName) => {
+    const hasError = errors[fieldName];
+    return `w-full px-4 py-2.5 bg-background border rounded-[var(--radius)] text-foreground text-sm transition-all focus:outline-none focus:ring-[3px] ${
+      hasError
+        ? "border-destructive focus:border-destructive focus:ring-destructive/15"
+        : "border-input focus:border-ring focus:ring-ring/15"
+    }`;
+  };
+
   const fetchCamps = async (page = 1) => {
     try {
       setLoading(true);
-      console.log("🔄 Fetching camps with filters:", { ...filters, page });
-
       const queryParams = new URLSearchParams({
         status: filters.status,
         page: page.toString(),
@@ -138,10 +116,7 @@ const BloodCamps = () => {
         ...(filters.search && { search: filters.search }),
       });
 
-      // Try different endpoint variations
       const url = `${API_URL}/camps?${queryParams}`;
-      console.log("📡 API URL:", url);
-
       const res = await fetch(url, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -149,164 +124,86 @@ const BloodCamps = () => {
         },
       });
 
-      console.log("📨 Response status:", res.status, res.statusText);
-
-      // Check if response is JSON
       const contentType = res.headers.get("content-type");
       if (!contentType || !contentType.includes("application/json")) {
-        const text = await res.text();
-        console.error(
-          "❌ Server returned non-JSON response:",
-          text.substring(0, 200),
-        );
-        throw new Error(
-          "Server returned HTML instead of JSON. Check API endpoint.",
-        );
+        throw new Error("Server returned HTML instead of JSON. Check API endpoint.");
       }
 
       if (!res.ok) {
         const errorData = await res.json();
-        console.error("❌ API Error Response:", errorData);
-        throw new Error(
-          errorData.message || `Failed to fetch camps: ${res.status}`,
-        );
+        throw new Error(errorData.message || `Failed to fetch camps: ${res.status}`);
       }
 
       const data = await res.json();
-      console.log("✅ API Response data:", data);
 
       if (data.success) {
         const campsData = data.data?.camps || data.camps || [];
-        const calculatedStats = calculateStats(campsData);
-
-        console.log("📊 Setting camps data:", {
-          campsCount: campsData.length,
-          pagination: data.data?.pagination || data.pagination,
-          stats: calculatedStats,
-        });
-
         setCamps(campsData);
         setPagination(
-          data.data?.pagination ||
-            data.pagination || {
-              currentPage: 1,
-              totalPages: 1,
-              totalCamps: 0,
-              hasNext: false,
-              hasPrev: false,
-            },
+          data.data?.pagination || data.pagination || {
+            currentPage: 1,
+            totalPages: 1,
+            totalCamps: 0,
+            hasNext: false,
+            hasPrev: false,
+          }
         );
-        setStats(calculatedStats);
+        setStats(calculateStats(campsData));
       } else {
-        console.error("❌ API returned success: false", data);
         throw new Error(data.message || "Failed to fetch camps");
       }
     } catch (err) {
-      console.error("🚨 Fetch camps error:", err);
+      console.error("Fetch camps error:", err);
       toast.error(err.message || "Failed to load blood camps");
-      // Set empty state on error
       setCamps([]);
-      setPagination({
-        currentPage: 1,
-        totalPages: 1,
-        totalCamps: 0,
-        hasNext: false,
-        hasPrev: false,
-      });
-      setStats({
-        upcoming: 0,
-        ongoing: 0,
-        completed: 0,
-        cancelled: 0,
-        total: 0,
-      });
+      setPagination({ currentPage: 1, totalPages: 1, totalCamps: 0, hasNext: false, hasPrev: false });
+      setStats({ upcoming: 0, ongoing: 0, completed: 0, cancelled: 0, total: 0 });
     } finally {
       setLoading(false);
     }
   };
 
-  // Update camp status - FIXED VERSION
   const updateCampStatus = async (campId, newStatus) => {
     try {
-      console.log("🔄 Updating camp status:", { campId, newStatus });
+      const url = `${API_URL}/camps/${campId}/status`;
+      const res = await fetch(url, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ status: newStatus }),
+      });
 
-      // Try different endpoint variations
-      const endpoints = [
-        `${API_URL}/camps/${campId}/status`,
-        `${API_URL}/camps/${campId}`,
-        `${API_URL}/camps/${campId}/status`,
-      ];
-
-      let lastError = null;
-
-      for (const url of endpoints) {
-        try {
-          console.log("🔗 Trying endpoint:", url);
-
-          const payload = { status: newStatus };
-          const res = await fetch(url, {
-            method: "PATCH",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify(payload),
-          });
-
-          // Check content type before parsing
-          const contentType = res.headers.get("content-type");
-          if (!contentType || !contentType.includes("application/json")) {
-            const text = await res.text();
-            console.warn(
-              "⚠️ Non-JSON response from",
-              url,
-              text.substring(0, 100),
-            );
-            continue; // Try next endpoint
-          }
-
-          const data = await res.json();
-          console.log("📨 Status update response:", {
-            status: res.status,
-            data,
-          });
-
-          if (res.ok && data.success) {
-            toast.success(`Camp marked as ${newStatus.toLowerCase()}!`);
-            setActionMenu(null);
-            fetchCamps(); // Refresh the list
-            return; // Success, exit function
-          } else {
-            lastError = new Error(
-              data.message || "Failed to update camp status",
-            );
-          }
-        } catch (err) {
-          console.warn("⚠️ Endpoint failed:", url, err.message);
-          lastError = err;
-        }
+      const contentType = res.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        throw new Error("Invalid server response");
       }
 
-      // If all endpoints failed
-      if (lastError) {
-        throw lastError;
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        toast.success(`Camp marked as ${newStatus.toLowerCase()}`);
+        setActionMenu(null);
+        fetchCamps();
       } else {
-        throw new Error("No valid endpoint found for status update");
+        throw new Error(data.message || "Failed to update camp status");
       }
     } catch (err) {
-      console.error("🚨 Status update error:", err);
+      console.error("Status update error:", err);
       toast.error(err.message || "Error updating camp status");
     }
   };
 
   useEffect(() => {
-    console.log("🎯 BloodCamps component mounted");
     fetchCamps();
+    // Close action menu when clicking outside
+    const handleClickOutside = () => setActionMenu(null);
+    document.addEventListener("click", handleClickOutside);
+    return () => document.removeEventListener("click", handleClickOutside);
   }, [filters]);
 
-  // Reset form
   const resetForm = () => {
-    console.log("🔄 Resetting form");
     setFormData({
       title: "",
       description: "",
@@ -323,15 +220,9 @@ const BloodCamps = () => {
     setEditingCamp(null);
   };
 
-  // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
-
-    console.log("📤 Form submission started:", {
-      formData,
-      editingCamp: editingCamp?._id,
-    });
 
     const formErrors = validateForm(formData);
     if (Object.keys(formErrors).length > 0) {
@@ -341,102 +232,56 @@ const BloodCamps = () => {
     }
 
     try {
-      // Try different endpoint variations
-      const baseUrls = [`${API_URL}/camps`, `${API_URL}/camps`];
+      const url = editingCamp ? `${API_URL}/camps/${editingCamp._id}` : `${API_URL}/camps`;
+      const method = editingCamp ? "PUT" : "POST";
 
-      let lastError = null;
+      const payload = {
+        title: formData.title.trim(),
+        description: formData.description.trim(),
+        date: formData.date,
+        time: { start: formData.startTime, end: formData.endTime },
+        location: {
+          venue: formData.venue.trim(),
+          city: formData.city.trim(),
+          state: formData.state.trim(),
+          pincode: formData.pincode,
+        },
+        expectedDonors: Number(formData.expectedDonors),
+      };
 
-      for (const baseUrl of baseUrls) {
-        const url = editingCamp ? `${baseUrl}/${editingCamp._id}` : baseUrl;
-        const method = editingCamp ? "PUT" : "POST";
+      const res = await fetch(url, {
+        method,
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      });
 
-        const payload = {
-          title: formData.title.trim(),
-          description: formData.description.trim(),
-          date: formData.date,
-          time: {
-            start: formData.startTime,
-            end: formData.endTime,
-          },
-          location: {
-            venue: formData.venue.trim(),
-            city: formData.city.trim(),
-            state: formData.state.trim(),
-            pincode: formData.pincode,
-          },
-          expectedDonors: Number(formData.expectedDonors),
-        };
-
-        console.log("📦 Sending payload:", payload);
-        console.log("🔗 Making request to:", url, "Method:", method);
-
-        try {
-          const res = await fetch(url, {
-            method,
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify(payload),
-          });
-
-          // Check content type
-          const contentType = res.headers.get("content-type");
-          if (!contentType || !contentType.includes("application/json")) {
-            const text = await res.text();
-            console.warn(
-              "⚠️ Non-JSON response from",
-              url,
-              text.substring(0, 100),
-            );
-            continue;
-          }
-
-          const data = await res.json();
-          console.log("📨 Form submission response:", {
-            status: res.status,
-            data,
-          });
-
-          if (res.ok && data.success) {
-            toast.success(
-              `Blood Camp ${editingCamp ? "Updated" : "Added"} Successfully!`,
-            );
-            resetForm();
-            setShowForm(false);
-            fetchCamps();
-            return; // Success, exit function
-          } else {
-            lastError = new Error(
-              data.message ||
-                `Failed to ${editingCamp ? "update" : "add"} blood camp`,
-            );
-          }
-        } catch (err) {
-          console.warn("⚠️ Endpoint failed:", url, err.message);
-          lastError = err;
-        }
+      const contentType = res.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        throw new Error("Invalid server response");
       }
 
-      // If all endpoints failed
-      if (lastError) {
-        throw lastError;
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        toast.success(`Blood Camp ${editingCamp ? "Updated" : "Added"} Successfully!`);
+        resetForm();
+        setShowForm(false);
+        fetchCamps();
       } else {
-        throw new Error("No valid endpoint found for camp operation");
+        throw new Error(data.message || `Failed to ${editingCamp ? "update" : "add"} blood camp`);
       }
     } catch (err) {
-      console.error("🚨 Form submission error:", err);
-      toast.error(
-        err.message || `Error ${editingCamp ? "updating" : "adding"} camp`,
-      );
+      console.error("Form submission error:", err);
+      toast.error(err.message || `Error ${editingCamp ? "updating" : "adding"} camp`);
     } finally {
       setSubmitting(false);
     }
   };
 
-  // Handle edit
   const handleEdit = (camp) => {
-    console.log("✏️ Editing camp:", camp);
     setEditingCamp(camp);
     setFormData({
       title: camp.title,
@@ -454,104 +299,56 @@ const BloodCamps = () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  // Handle delete
   const handleDeleteCamp = async (id) => {
-    console.log("🗑️ Deleting camp:", id);
-    if (
-      !window.confirm(
-        "Are you sure you want to delete this camp? This action cannot be undone.",
-      )
-    )
-      return;
+    if (!window.confirm("Are you sure you want to delete this camp? This action cannot be undone.")) return;
 
     try {
-      // Try different endpoint variations
-      const endpoints = [`${API_URL}/camps/${id}`, `${API_URL}/camps/${id}`];
+      const res = await fetch(`${API_URL}/camps/${id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
 
-      let lastError = null;
+      const data = await res.json();
 
-      for (const url of endpoints) {
-        try {
-          console.log("🔗 DELETE request to:", url);
-
-          const res = await fetch(url, {
-            method: "DELETE",
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-          });
-
-          // Check content type
-          const contentType = res.headers.get("content-type");
-          if (!contentType || !contentType.includes("application/json")) {
-            const text = await res.text();
-            console.warn(
-              "⚠️ Non-JSON response from",
-              url,
-              text.substring(0, 100),
-            );
-            continue;
-          }
-
-          const data = await res.json();
-          console.log("📨 Delete response:", { status: res.status, data });
-
-          if (res.ok && data.success) {
-            toast.success("Camp deleted successfully!");
-            fetchCamps();
-            return; // Success, exit function
-          } else {
-            lastError = new Error(data.message || "Failed to delete camp");
-          }
-        } catch (err) {
-          console.warn("⚠️ Endpoint failed:", url, err.message);
-          lastError = err;
-        }
-      }
-
-      // If all endpoints failed
-      if (lastError) {
-        throw lastError;
+      if (res.ok && data.success) {
+        toast.success("Camp deleted successfully!");
+        fetchCamps();
       } else {
-        throw new Error("No valid endpoint found for delete operation");
+        throw new Error(data.message || "Failed to delete camp");
       }
     } catch (err) {
-      console.error("🚨 Delete camp error:", err);
+      console.error("Delete camp error:", err);
       toast.error(err.message || "Error deleting camp");
     }
   };
 
-  // Handle input change
   const handleInputChange = (field, value) => {
-    console.log("⌨️ Input change:", field, value);
     setFormData((prev) => ({ ...prev, [field]: value }));
-    // Clear error when user starts typing
-    if (errors[field]) {
-      setErrors((prev) => ({ ...prev, [field]: "" }));
-    }
+    if (errors[field]) setErrors((prev) => ({ ...prev, [field]: "" }));
   };
 
-  // Status badge component
   const StatusBadge = ({ status }) => {
     const statusConfig = {
       Upcoming: {
-        color: "bg-blue-100 text-blue-800",
+        color: "bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20",
         label: "Upcoming",
         icon: Calendar,
       },
       Ongoing: {
-        color: "bg-green-100 text-green-800",
+        color: "bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20",
         label: "Ongoing",
         icon: Clock,
       },
       Completed: {
-        color: "bg-gray-100 text-gray-800",
+        color: "bg-muted text-muted-foreground border-border",
         label: "Completed",
         icon: CheckCircle,
       },
       Cancelled: {
-        color: "bg-red-100 text-red-800",
+        color: "bg-destructive/10 text-destructive border-destructive/20",
         label: "Cancelled",
         icon: XCircle,
       },
@@ -561,186 +358,145 @@ const BloodCamps = () => {
     const IconComponent = config.icon;
 
     return (
-      <span
-        className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 ${config.color}`}
-      >
+      <span className={`px-2.5 py-1 rounded-full text-xs font-medium flex items-center gap-1.5 border ${config.color}`}>
         <IconComponent size={12} />
         {config.label}
       </span>
     );
   };
 
-  // Get available status actions for a camp - FIXED to include Completed
   const getAvailableActions = (camp) => {
-    const baseActions = [];
-
     switch (camp.status) {
       case "Upcoming":
-        baseActions.push(
-          {
-            label: "Mark as Ongoing",
-            value: "Ongoing",
-            color: "text-green-600",
-          },
-          { label: "Cancel Camp", value: "Cancelled", color: "text-red-600" },
-        );
-        break;
+        return [
+          { label: "Mark as Ongoing", value: "Ongoing", color: "text-green-600 dark:text-green-400" },
+          { label: "Cancel Camp", value: "Cancelled", color: "text-destructive" },
+        ];
       case "Ongoing":
-        baseActions.push(
-          {
-            label: "Mark as Completed",
-            value: "Completed",
-            color: "text-gray-600",
-          },
-          { label: "Cancel Camp", value: "Cancelled", color: "text-red-600" },
-        );
-        break;
+        return [
+          { label: "Mark as Completed", value: "Completed", color: "text-foreground" },
+          { label: "Cancel Camp", value: "Cancelled", color: "text-destructive" },
+        ];
       case "Completed":
-        baseActions.push(
-          {
-            label: "Re-open as Ongoing",
-            value: "Ongoing",
-            color: "text-green-600",
-          },
-          {
-            label: "Mark as Upcoming",
-            value: "Upcoming",
-            color: "text-blue-600",
-          },
-        );
-        break;
+        return [
+          { label: "Re-open as Ongoing", value: "Ongoing", color: "text-green-600 dark:text-green-400" },
+          { label: "Mark as Upcoming", value: "Upcoming", color: "text-blue-600 dark:text-blue-400" },
+        ];
       case "Cancelled":
-        baseActions.push(
-          {
-            label: "Re-schedule as Upcoming",
-            value: "Upcoming",
-            color: "text-blue-600",
-          },
-          {
-            label: "Mark as Ongoing",
-            value: "Ongoing",
-            color: "text-green-600",
-          },
-        );
-        break;
+        return [
+          { label: "Re-schedule as Upcoming", value: "Upcoming", color: "text-blue-600 dark:text-blue-400" },
+          { label: "Mark as Ongoing", value: "Ongoing", color: "text-green-600 dark:text-green-400" },
+        ];
       default:
-        // Default actions for any status
-        baseActions.push(
-          {
-            label: "Mark as Upcoming",
-            value: "Upcoming",
-            color: "text-blue-600",
-          },
-          {
-            label: "Mark as Ongoing",
-            value: "Ongoing",
-            color: "text-green-600",
-          },
-          {
-            label: "Mark as Completed",
-            value: "Completed",
-            color: "text-gray-600",
-          },
-          { label: "Cancel Camp", value: "Cancelled", color: "text-red-600" },
-        );
+        return [
+          { label: "Mark as Upcoming", value: "Upcoming", color: "text-blue-600 dark:text-blue-400" },
+          { label: "Mark as Ongoing", value: "Ongoing", color: "text-green-600 dark:text-green-400" },
+          { label: "Mark as Completed", value: "Completed", color: "text-foreground" },
+          { label: "Cancel Camp", value: "Cancelled", color: "text-destructive" },
+        ];
     }
-
-    return baseActions;
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50 to-white p-6">
-      <div className="max-w-7xl mx-auto">
-        {/* Header with Stats */}
-        <div className="mb-8">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+    <div className="min-h-screen bg-background p-4 sm:p-6 lg:p-8">
+      <div className="max-w-7xl mx-auto space-y-8">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div className="flex items-center gap-4">
+            <div className="p-2.5 rounded-xl bg-primary/10">
+              <Droplet className="w-6 h-6 text-primary" />
+            </div>
             <div>
-              <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-3">
-                <div className="p-2 bg-red-100 rounded-xl">
-                  <Droplet className="w-6 h-6 text-red-600" />
-                </div>
+              <h1 className="text-2xl font-bold tracking-tight text-foreground">
                 Blood Donation Camps
               </h1>
-              <p className="text-gray-600 mt-1">
+              <p className="text-sm text-muted-foreground mt-1">
                 Manage and organize blood donation camps
               </p>
             </div>
-            <button
-              onClick={() => {
-                console.log("➕ Add camp button clicked");
-                resetForm();
-                setShowForm(!showForm);
-              }}
-              className="flex items-center bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg shadow-md transition-colors"
-            >
-              <Plus size={18} className="mr-2" />
-              {showForm ? "Cancel" : "Add Camp"}
-            </button>
           </div>
+          <button
+            onClick={() => {
+              resetForm();
+              setShowForm(!showForm);
+            }}
+            className="btn-advanced flex items-center gap-2"
+          >
+            {showForm ? "Cancel" : (
+              <>
+                <Plus size={18} />
+                Add Camp
+              </>
+            )}
+          </button>
+        </div>
 
-          {/* Stats Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-            <div className="bg-white p-4 rounded-xl shadow-lg border-l-4 border-l-red-400">
-              <div className="text-2xl font-bold text-gray-800">
-                {stats.total}
+        {/* Stats Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          <div className="bg-card border border-border rounded-xl p-5">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2 rounded-lg bg-primary/10">
+                <Droplet className="w-4 h-4 text-primary" />
               </div>
-              <div className="text-sm text-gray-600">Total Camps</div>
+              <span className="text-xs font-medium text-muted-foreground">Total</span>
             </div>
-            <div className="bg-white p-4 rounded-xl shadow-lg border-l-4 border-l-blue-400">
-              <div className="text-2xl font-bold text-blue-600">
-                {stats.upcoming}
+            <div className="text-2xl font-bold tracking-tight text-foreground">{stats.total}</div>
+          </div>
+          <div className="bg-card border border-border rounded-xl p-5">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2 rounded-lg bg-blue-500/10">
+                <Calendar className="w-4 h-4 text-blue-600 dark:text-blue-400" />
               </div>
-              <div className="text-sm text-gray-600">Upcoming</div>
+              <span className="text-xs font-medium text-muted-foreground">Upcoming</span>
             </div>
-            <div className="bg-white p-4 rounded-xl shadow-lg border-l-4 border-l-green-400">
-              <div className="text-2xl font-bold text-green-600">
-                {stats.ongoing}
+            <div className="text-2xl font-bold tracking-tight text-foreground">{stats.upcoming}</div>
+          </div>
+          <div className="bg-card border border-border rounded-xl p-5">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2 rounded-lg bg-green-500/10">
+                <Clock className="w-4 h-4 text-green-600 dark:text-green-400" />
               </div>
-              <div className="text-sm text-gray-600">Ongoing</div>
+              <span className="text-xs font-medium text-muted-foreground">Ongoing</span>
             </div>
-            <div className="bg-white p-4 rounded-xl shadow-lg border-l-4 border-l-gray-400">
-              <div className="text-2xl font-bold text-gray-600">
-                {stats.completed}
+            <div className="text-2xl font-bold tracking-tight text-foreground">{stats.ongoing}</div>
+          </div>
+          <div className="bg-card border border-border rounded-xl p-5">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2 rounded-lg bg-muted">
+                <CheckCircle className="w-4 h-4 text-muted-foreground" />
               </div>
-              <div className="text-sm text-gray-600">Completed</div>
+              <span className="text-xs font-medium text-muted-foreground">Completed</span>
             </div>
-            <div className="bg-white p-4 rounded-xl shadow-lg border-l-4 border-l-red-400">
-              <div className="text-2xl font-bold text-red-600">
-                {stats.cancelled}
+            <div className="text-2xl font-bold tracking-tight text-foreground">{stats.completed}</div>
+          </div>
+          <div className="bg-card border border-border rounded-xl p-5">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2 rounded-lg bg-destructive/10">
+                <XCircle className="w-4 h-4 text-destructive" />
               </div>
-              <div className="text-sm text-gray-600">Cancelled</div>
+              <span className="text-xs font-medium text-muted-foreground">Cancelled</span>
             </div>
+            <div className="text-2xl font-bold tracking-tight text-foreground">{stats.cancelled}</div>
           </div>
         </div>
 
         {/* Filters */}
-        <div className="bg-white rounded-2xl shadow-lg border border-red-100 p-6 mb-6">
+        <div className="bg-card border border-border rounded-xl p-5">
           <div className="flex flex-col sm:flex-row gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search
-                  className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-                  size={18}
-                />
-                <input
-                  type="text"
-                  placeholder="Search camps..."
-                  value={filters.search}
-                  onChange={(e) => {
-                    console.log("🔍 Search filter:", e.target.value);
-                    setFilters((prev) => ({ ...prev, search: e.target.value }));
-                  }}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                />
-              </div>
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <input
+                type="text"
+                placeholder="Search camps..."
+                value={filters.search}
+                onChange={(e) => setFilters((prev) => ({ ...prev, search: e.target.value }))}
+                className="input-minimal pl-9"
+              />
             </div>
             <select
               value={filters.status}
-              onChange={(e) => {
-                console.log("📊 Status filter:", e.target.value);
-                setFilters((prev) => ({ ...prev, status: e.target.value }));
-              }}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+              onChange={(e) => setFilters((prev) => ({ ...prev, status: e.target.value }))}
+              className="input-minimal w-full sm:w-auto min-w-[140px]"
             >
               <option value="all">All Status</option>
               <option value="Upcoming">Upcoming</option>
@@ -750,264 +506,241 @@ const BloodCamps = () => {
             </select>
             <select
               value={filters.sortBy}
-              onChange={(e) => {
-                console.log("📈 Sort by:", e.target.value);
-                setFilters((prev) => ({ ...prev, sortBy: e.target.value }));
-              }}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+              onChange={(e) => setFilters((prev) => ({ ...prev, sortBy: e.target.value }))}
+              className="input-minimal w-full sm:w-auto min-w-[140px]"
             >
               <option value="date">Sort by Date</option>
               <option value="title">Sort by Title</option>
               <option value="expectedDonors">Sort by Donors</option>
             </select>
             <button
-              onClick={() => {
-                console.log("🔄 Toggling sort order");
+              onClick={() =>
                 setFilters((prev) => ({
                   ...prev,
                   sortOrder: prev.sortOrder === "desc" ? "asc" : "desc",
-                }));
-              }}
-              className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                }))
+              }
+              className="input-minimal flex items-center justify-center w-full sm:w-auto px-4 hover:bg-muted/80 transition-colors"
+              title="Toggle Sort Order"
             >
-              {filters.sortOrder === "desc" ? (
-                <ChevronDown size={18} />
-              ) : (
-                <ChevronUp size={18} />
-              )}
+              {filters.sortOrder === "desc" ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
             </button>
           </div>
         </div>
 
         {/* Add/Edit Form */}
         {showForm && (
-          <form
-            onSubmit={handleSubmit}
-            className="bg-white rounded-2xl shadow-lg border border-red-100 p-6 mb-8"
-          >
-            <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
-              <Droplet className="w-5 h-5 text-red-600" />
+          <form onSubmit={handleSubmit} className="bg-card border border-border rounded-xl p-6 space-y-5">
+            <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+              <Droplet className="w-5 h-5 text-primary" />
               {editingCamp ? "Edit Blood Camp" : "Add New Blood Camp"}
             </h2>
 
             <div className="grid md:grid-cols-2 gap-4">
               {/* Title */}
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Camp Title *
+                <label className="block text-sm font-medium text-foreground mb-1.5">
+                  Camp Title <span className="text-destructive">*</span>
                 </label>
                 <input
                   type="text"
                   value={formData.title}
                   onChange={(e) => handleInputChange("title", e.target.value)}
-                  className={`w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-red-500 focus:border-red-500 ${
-                    errors.title ? "border-red-500" : ""
-                  }`}
+                  className={getInputClass("title")}
                   placeholder="Enter camp title"
                 />
                 {errors.title && (
-                  <p className="text-red-500 text-sm mt-1">{errors.title}</p>
+                  <p className="text-destructive text-xs mt-1.5 flex items-center gap-1.5">
+                    <AlertCircle size={14} /> {errors.title}
+                  </p>
                 )}
               </div>
 
               {/* Date */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Date *
+                <label className="block text-sm font-medium text-foreground mb-1.5">
+                  Date <span className="text-destructive">*</span>
                 </label>
                 <input
                   type="date"
                   value={formData.date}
                   onChange={(e) => handleInputChange("date", e.target.value)}
-                  className={`w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-red-500 focus:border-red-500 ${
-                    errors.date ? "border-red-500" : ""
-                  }`}
+                  className={getInputClass("date")}
                 />
                 {errors.date && (
-                  <p className="text-red-500 text-sm mt-1">{errors.date}</p>
+                  <p className="text-destructive text-xs mt-1.5 flex items-center gap-1.5">
+                    <AlertCircle size={14} /> {errors.date}
+                  </p>
                 )}
               </div>
 
               {/* Times */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Start Time *
+                  <label className="block text-sm font-medium text-foreground mb-1.5">
+                    Start Time <span className="text-destructive">*</span>
                   </label>
                   <input
                     type="time"
                     value={formData.startTime}
-                    onChange={(e) =>
-                      handleInputChange("startTime", e.target.value)
-                    }
-                    className={`w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-red-500 focus:border-red-500 ${
-                      errors.startTime ? "border-red-500" : ""
-                    }`}
+                    onChange={(e) => handleInputChange("startTime", e.target.value)}
+                    className={getInputClass("startTime")}
                   />
                   {errors.startTime && (
-                    <p className="text-red-500 text-sm mt-1">
-                      {errors.startTime}
+                    <p className="text-destructive text-xs mt-1.5 flex items-center gap-1.5">
+                      <AlertCircle size={14} /> {errors.startTime}
                     </p>
                   )}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    End Time *
+                  <label className="block text-sm font-medium text-foreground mb-1.5">
+                    End Time <span className="text-destructive">*</span>
                   </label>
                   <input
                     type="time"
                     value={formData.endTime}
-                    onChange={(e) =>
-                      handleInputChange("endTime", e.target.value)
-                    }
-                    className={`w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-red-500 focus:border-red-500 ${
-                      errors.endTime ? "border-red-500" : ""
-                    }`}
+                    onChange={(e) => handleInputChange("endTime", e.target.value)}
+                    className={getInputClass("endTime")}
                   />
                   {errors.endTime && (
-                    <p className="text-red-500 text-sm mt-1">
-                      {errors.endTime}
+                    <p className="text-destructive text-xs mt-1.5 flex items-center gap-1.5">
+                      <AlertCircle size={14} /> {errors.endTime}
                     </p>
                   )}
                 </div>
               </div>
 
-              {/* Location Fields */}
+              {/* Venue */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Venue *
+                <label className="block text-sm font-medium text-foreground mb-1.5">
+                  Venue <span className="text-destructive">*</span>
                 </label>
                 <input
                   type="text"
                   value={formData.venue}
                   onChange={(e) => handleInputChange("venue", e.target.value)}
-                  className={`w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-red-500 focus:border-red-500 ${
-                    errors.venue ? "border-red-500" : ""
-                  }`}
+                  className={getInputClass("venue")}
                   placeholder="Enter venue name"
                 />
                 {errors.venue && (
-                  <p className="text-red-500 text-sm mt-1">{errors.venue}</p>
+                  <p className="text-destructive text-xs mt-1.5 flex items-center gap-1.5">
+                    <AlertCircle size={14} /> {errors.venue}
+                  </p>
                 )}
               </div>
 
+              {/* City */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  City *
+                <label className="block text-sm font-medium text-foreground mb-1.5">
+                  City <span className="text-destructive">*</span>
                 </label>
                 <input
                   type="text"
                   value={formData.city}
                   onChange={(e) => handleInputChange("city", e.target.value)}
-                  className={`w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-red-500 focus:border-red-500 ${
-                    errors.city ? "border-red-500" : ""
-                  }`}
+                  className={getInputClass("city")}
                   placeholder="Enter city"
                 />
                 {errors.city && (
-                  <p className="text-red-500 text-sm mt-1">{errors.city}</p>
+                  <p className="text-destructive text-xs mt-1.5 flex items-center gap-1.5">
+                    <AlertCircle size={14} /> {errors.city}
+                  </p>
                 )}
               </div>
 
+              {/* State */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  State *
+                <label className="block text-sm font-medium text-foreground mb-1.5">
+                  State <span className="text-destructive">*</span>
                 </label>
                 <input
                   type="text"
                   value={formData.state}
                   onChange={(e) => handleInputChange("state", e.target.value)}
-                  className={`w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-red-500 focus:border-red-500 ${
-                    errors.state ? "border-red-500" : ""
-                  }`}
+                  className={getInputClass("state")}
                   placeholder="Enter state"
                 />
                 {errors.state && (
-                  <p className="text-red-500 text-sm mt-1">{errors.state}</p>
+                  <p className="text-destructive text-xs mt-1.5 flex items-center gap-1.5">
+                    <AlertCircle size={14} /> {errors.state}
+                  </p>
                 )}
               </div>
 
+              {/* Pincode */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Pincode *
+                <label className="block text-sm font-medium text-foreground mb-1.5">
+                  Pincode <span className="text-destructive">*</span>
                 </label>
                 <input
                   type="text"
                   value={formData.pincode}
                   onChange={(e) => handleInputChange("pincode", e.target.value)}
-                  className={`w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-red-500 focus:border-red-500 ${
-                    errors.pincode ? "border-red-500" : ""
-                  }`}
+                  className={getInputClass("pincode")}
                   placeholder="6-digit pincode"
                   maxLength={6}
                 />
                 {errors.pincode && (
-                  <p className="text-red-500 text-sm mt-1">{errors.pincode}</p>
+                  <p className="text-destructive text-xs mt-1.5 flex items-center gap-1.5">
+                    <AlertCircle size={14} /> {errors.pincode}
+                  </p>
                 )}
               </div>
 
               {/* Expected Donors */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Expected Donors *
+                <label className="block text-sm font-medium text-foreground mb-1.5">
+                  Expected Donors <span className="text-destructive">*</span>
                 </label>
                 <input
                   type="number"
                   min="1"
                   value={formData.expectedDonors}
-                  onChange={(e) =>
-                    handleInputChange("expectedDonors", e.target.value)
-                  }
-                  className={`w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-red-500 focus:border-red-500 ${
-                    errors.expectedDonors ? "border-red-500" : ""
-                  }`}
+                  onChange={(e) => handleInputChange("expectedDonors", e.target.value)}
+                  className={getInputClass("expectedDonors")}
                   placeholder="Expected number of donors"
                 />
                 {errors.expectedDonors && (
-                  <p className="text-red-500 text-sm mt-1">
-                    {errors.expectedDonors}
+                  <p className="text-destructive text-xs mt-1.5 flex items-center gap-1.5">
+                    <AlertCircle size={14} /> {errors.expectedDonors}
                   </p>
                 )}
               </div>
 
               {/* Description */}
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-foreground mb-1.5">
                   Description
                 </label>
                 <textarea
                   value={formData.description}
-                  onChange={(e) =>
-                    handleInputChange("description", e.target.value)
-                  }
+                  onChange={(e) => handleInputChange("description", e.target.value)}
                   rows={3}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                  className="w-full px-4 py-2.5 bg-background border border-input rounded-[var(--radius)] text-foreground text-sm transition-colors focus:outline-none focus:border-ring focus:ring-[3px] focus:ring-ring/15 resize-none"
                   placeholder="Enter camp description (optional)"
                 />
               </div>
             </div>
 
             {/* Form Actions */}
-            <div className="flex gap-3 mt-6">
-              <button
-                type="submit"
-                disabled={submitting}
-                className="bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white px-6 py-2 rounded-lg transition-colors"
-              >
-                {submitting
-                  ? "Saving..."
-                  : editingCamp
-                    ? "Update Camp"
-                    : "Create Camp"}
+            <div className="flex gap-3 pt-4 border-t border-border">
+              <button type="submit" disabled={submitting} className="btn-advanced flex items-center gap-2">
+                {submitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  editingCamp ? "Update Camp" : "Create Camp"
+                )}
               </button>
               <button
                 type="button"
                 onClick={() => {
-                  console.log("❌ Form cancelled");
                   setShowForm(false);
                   resetForm();
                 }}
-                className="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg transition-colors"
+                className="btn-ghost"
               >
                 Cancel
               </button>
@@ -1017,55 +750,47 @@ const BloodCamps = () => {
 
         {/* Blood Camps List */}
         {loading ? (
-          <div className="flex justify-center items-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600"></div>
-            <span className="ml-3 text-gray-600">Loading camps...</span>
+          <div className="flex justify-center items-center py-16 bg-card border border-border rounded-xl">
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            <span className="ml-3 text-muted-foreground font-medium">Loading camps...</span>
           </div>
         ) : camps.length === 0 ? (
-          <div className="text-center py-12 bg-white rounded-2xl shadow-lg border border-red-100">
-            <div className="text-gray-400 mb-4">
-              <Droplet size={48} className="mx-auto" />
-            </div>
-            <h3 className="text-lg font-medium text-gray-800 mb-2">
-              No blood camps found
-            </h3>
-            <p className="text-gray-600 mb-4">
+          <div className="text-center py-16 bg-card border border-border rounded-xl">
+            <Droplet size={48} className="mx-auto text-muted-foreground/30 mb-4" />
+            <h3 className="text-lg font-semibold text-foreground mb-2">No blood camps found</h3>
+            <p className="text-sm text-muted-foreground mb-4 max-w-sm mx-auto">
               {filters.status !== "all" || filters.search
                 ? "Try changing your filters"
                 : "Get started by creating your first blood camp"}
             </p>
             {!filters.search && filters.status === "all" && (
-              <button
-                onClick={() => {
-                  console.log("➕ Create first camp clicked");
-                  setShowForm(true);
-                }}
-                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg"
-              >
+              <button onClick={() => setShowForm(true)} className="btn-advanced">
                 Create Your First Camp
               </button>
             )}
           </div>
         ) : (
           <>
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
               {camps.map((camp) => {
-                console.log("🎪 Rendering camp card:", camp._id, camp.title);
                 const availableActions = getAvailableActions(camp);
 
                 return (
                   <div
                     key={camp._id}
-                    className="bg-white rounded-2xl shadow-lg border border-red-100 p-6 hover:shadow-xl transition-all duration-300"
+                    className="bg-card border border-border rounded-xl p-5 hover:shadow-md transition-all duration-300 group"
                   >
                     <div className="flex justify-between items-start mb-3">
-                      <h3 className="text-lg font-semibold text-gray-800 line-clamp-2">
+                      <h3 className="text-base font-semibold text-foreground line-clamp-2 flex-1 pr-2 group-hover:text-primary transition-colors">
                         {camp.title}
                       </h3>
-                      <div className="flex gap-1">
+                      <div className="flex gap-1 shrink-0">
                         <button
-                          onClick={() => handleEdit(camp)}
-                          className="text-red-600 hover:text-red-700 p-1 transition-colors"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEdit(camp);
+                          }}
+                          className="text-muted-foreground hover:text-primary p-1.5 rounded-lg hover:bg-muted transition-colors"
                           title="Edit camp"
                         >
                           <Edit3 size={16} />
@@ -1073,25 +798,25 @@ const BloodCamps = () => {
                         {availableActions.length > 0 && (
                           <div className="relative">
                             <button
-                              onClick={() =>
-                                setActionMenu(
-                                  actionMenu === camp._id ? null : camp._id,
-                                )
-                              }
-                              className="text-gray-600 hover:text-gray-700 p-1 transition-colors"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setActionMenu(actionMenu === camp._id ? null : camp._id);
+                              }}
+                              className="text-muted-foreground hover:text-foreground p-1.5 rounded-lg hover:bg-muted transition-colors"
                               title="More actions"
                             >
                               <MoreVertical size={16} />
                             </button>
                             {actionMenu === camp._id && (
-                              <div className="absolute right-0 top-8 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-10 min-w-48">
+                              <div
+                                onClick={(e) => e.stopPropagation()}
+                                className="absolute right-0 top-8 bg-card border border-border rounded-lg shadow-lg py-1 z-20 min-w-48"
+                              >
                                 {availableActions.map((action) => (
                                   <button
                                     key={action.value}
-                                    onClick={() =>
-                                      updateCampStatus(camp._id, action.value)
-                                    }
-                                    className={`w-full text-left px-4 py-2 hover:bg-gray-50 transition-colors ${action.color}`}
+                                    onClick={() => updateCampStatus(camp._id, action.value)}
+                                    className={`w-full text-left px-4 py-2 text-sm hover:bg-muted transition-colors ${action.color}`}
                                   >
                                     {action.label}
                                   </button>
@@ -1101,8 +826,11 @@ const BloodCamps = () => {
                           </div>
                         )}
                         <button
-                          onClick={() => handleDeleteCamp(camp._id)}
-                          className="text-red-500 hover:text-red-600 p-1 transition-colors"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteCamp(camp._id);
+                          }}
+                          className="text-muted-foreground hover:text-destructive p-1.5 rounded-lg hover:bg-destructive/10 transition-colors"
                           title="Delete camp"
                         >
                           <Trash2 size={16} />
@@ -1112,47 +840,37 @@ const BloodCamps = () => {
 
                     <div className="flex justify-between items-center mb-4">
                       <StatusBadge status={camp.status} />
-                      <span className="text-sm text-gray-500">
+                      <span className="text-xs text-muted-foreground">
                         {new Date(camp.date).toLocaleDateString()}
                       </span>
                     </div>
 
                     {camp.description && (
-                      <p className="text-sm text-gray-600 mb-4 line-clamp-2">
+                      <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
                         {camp.description}
                       </p>
                     )}
 
-                    <div className="space-y-2 text-sm text-gray-600">
-                      <div className="flex items-center">
-                        <Clock
-                          size={16}
-                          className="mr-2 text-red-500 flex-shrink-0"
-                        />
+                    <div className="space-y-2 text-sm">
+                      <div className="flex items-center text-foreground">
+                        <Clock size={14} className="mr-2 text-muted-foreground shrink-0" />
                         <span>
                           {camp.time.start} - {camp.time.end}
                         </span>
                       </div>
-                      <div className="flex items-start">
-                        <MapPin
-                          size={16}
-                          className="mr-2 text-red-500 flex-shrink-0 mt-0.5"
-                        />
+                      <div className="flex items-start text-foreground">
+                        <MapPin size={14} className="mr-2 text-muted-foreground shrink-0 mt-0.5" />
                         <span className="line-clamp-2">
-                          {camp.location.venue}, {camp.location.city},{" "}
-                          {camp.location.state} - {camp.location.pincode}
+                          {camp.location.venue}, {camp.location.city}, {camp.location.state} - {camp.location.pincode}
                         </span>
                       </div>
-                      <div className="flex items-center">
-                        <Users
-                          size={16}
-                          className="mr-2 text-red-500 flex-shrink-0"
-                        />
+                      <div className="flex items-center text-foreground">
+                        <Users size={14} className="mr-2 text-muted-foreground shrink-0" />
                         <span>Expected: {camp.expectedDonors} donors</span>
                       </div>
                       {camp.actualDonors > 0 && (
-                        <div className="flex items-center text-green-600">
-                          <Users size={16} className="mr-2 flex-shrink-0" />
+                        <div className="flex items-center text-green-600 dark:text-green-400">
+                          <Users size={14} className="mr-2 shrink-0" />
                           <span>Actual: {camp.actualDonors} donors</span>
                         </div>
                       )}
@@ -1164,27 +882,21 @@ const BloodCamps = () => {
 
             {/* Pagination */}
             {pagination.totalPages > 1 && (
-              <div className="flex justify-center items-center gap-4">
+              <div className="flex justify-center items-center gap-4 pt-4">
                 <button
-                  onClick={() => {
-                    console.log("⬅️ Previous page");
-                    fetchCamps(pagination.currentPage - 1);
-                  }}
+                  onClick={() => fetchCamps(pagination.currentPage - 1)}
                   disabled={!pagination.hasPrev}
-                  className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
+                  className="btn-ghost disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Previous
                 </button>
-                <span className="text-sm text-gray-600">
+                <span className="text-sm text-muted-foreground font-medium">
                   Page {pagination.currentPage} of {pagination.totalPages}
                 </span>
                 <button
-                  onClick={() => {
-                    console.log("➡️ Next page");
-                    fetchCamps(pagination.currentPage + 1);
-                  }}
+                  onClick={() => fetchCamps(pagination.currentPage + 1)}
                   disabled={!pagination.hasNext}
-                  className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
+                  className="btn-ghost disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Next
                 </button>

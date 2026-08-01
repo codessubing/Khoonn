@@ -1,20 +1,91 @@
 import express from "express";
-import { getDonorCamps, getDonorHistory, getDonorProfile, getDonorStats, updateDonorProfile } from "../controllers/donorController.js";
-import { protectDonor } from "../middlewares/donorMiddleware.js";
+import { 
+  getDonorProfile, 
+  updateDonorProfile, 
+  getDonorCamps, 
+  getDonorHistory, 
+  getDonorStats 
+} from "../controllers/donorController.js";
 
+// ✅ RECOMMENDED: Use unified middleware for consistency across the app
+import { protect, authorize } from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
 
-router.get("/profile", protectDonor, getDonorProfile)
+// Middleware combo: Ensure user is logged in AND is specifically a "donor"
+const protectDonorOnly = [protect, authorize("donor")];
 
-router.put("/profile", protectDonor, updateDonorProfile);
+/**
+ * @swagger
+ * /api/donor/profile:
+ *   get:
+ *     summary: Get authenticated donor's profile
+ *     tags: [Donor]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Donor profile retrieved successfully
+ */
+router.get("/profile", protectDonorOnly, getDonorProfile);
 
-router.get("/camps", protectDonor, getDonorCamps);
+/**
+ * @swagger
+ * /api/donor/profile:
+ *   put:
+ *     summary: Update authenticated donor's profile
+ *     tags: [Donor]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               fullName:
+ *                 type: string
+ *               phone:
+ *                 type: string
+ *               address:
+ *                 type: object
+ *               weight:
+ *                 type: number
+ */
+router.put("/profile", protectDonorOnly, updateDonorProfile);
 
-router.get("/history", protectDonor, getDonorHistory);
+/**
+ * @swagger
+ * /api/donor/camps:
+ *   get:
+ *     summary: Get upcoming blood camps (can be public or protected)
+ *     tags: [Donor]
+ *     security:
+ *       - bearerAuth: []
+ */
+router.get("/camps", protectDonorOnly, getDonorCamps);
 
-router.get("/stats", protectDonor, getDonorStats);
+/**
+ * @swagger
+ * /api/donor/history:
+ *   get:
+ *     summary: Get paginated donation history for the donor
+ *     tags: [Donor]
+ *     security:
+ *       - bearerAuth: []
+ */
+router.get("/history", protectDonorOnly, getDonorHistory);
 
-
+/**
+ * @swagger
+ * /api/donor/stats:
+ *   get:
+ *     summary: Get donor dashboard statistics (total donations, eligibility)
+ *     tags: [Donor]
+ *     security:
+ *       - bearerAuth: []
+ */
+router.get("/stats", protectDonorOnly, getDonorStats);
 
 export default router;

@@ -14,10 +14,9 @@ import Donor from "../models/donorModel.js";
  */
 export const hospitalRequestBlood = async (req, res) => {
   try {
-    const hospitalId = req.user._id;
+    const hospitalId = req.user.id;
     const { labId, bloodType, units } = req.body;
 
-    // Validation
     if (!labId || !bloodType || !units) {
       return res.status(400).json({
         success: false,
@@ -32,12 +31,11 @@ export const hospitalRequestBlood = async (req, res) => {
       });
     }
 
-    // Check if lab exists and is approved
     const lab = await Facility.findOne({ 
       _id: labId, 
       facilityType: "blood-lab", 
       status: "approved" 
-    });
+    }).lean();
 
     if (!lab) {
       return res.status(404).json({
@@ -46,15 +44,13 @@ export const hospitalRequestBlood = async (req, res) => {
       });
     }
 
-    // Create blood request
     const request = await BloodRequest.create({
       hospitalId,
       labId,
       bloodType,
-      units
+      units: Number(units)
     });
 
-    // Add to hospital history
     await Facility.findByIdAndUpdate(hospitalId, {
       $push: {
         history: {
@@ -88,11 +84,12 @@ export const hospitalRequestBlood = async (req, res) => {
  */
 export const getHospitalRequests = async (req, res) => {
   try {
-    const hospitalId = req.user._id;
+    const hospitalId = req.user.id;
 
     const requests = await BloodRequest.find({ hospitalId })
       .populate("labId", "name email phone address")
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean();
 
     res.json({ 
       success: true, 
@@ -113,15 +110,15 @@ export const getHospitalRequests = async (req, res) => {
 
 export const getHospitalDashboard = async (req, res) => {
   try {
-    const hospitalId = req.user._id;
+    const hospitalId = req.user.id;
 
     const [inventory, requests, hospital] = await Promise.all([
-      Blood.find({ hospital: hospitalId }),
-      BloodRequest.find({ hospitalId }).populate("labId", "name").sort({ createdAt: -1 }),
-      Facility.findById(hospitalId).select("history name email phone address lastLogin")
+      Blood.find({ hospital: hospitalId }).lean(),
+      BloodRequest.find({ hospitalId }).populate("labId", "name").sort({ createdAt: -1 }).lean(),
+      Facility.findById(hospitalId).select("history name email phone address lastLogin").lean()
     ]);
 
-    const totalUnits = inventory.reduce((sum, item) => sum + item.quantity, 0);
+    const totalUnits = inventory.reduce((sum, item) => sum + (item.quantity || 0), 0);
     const pendingRequests = requests.filter(r => r.status === "pending").length;
 
     res.json({
@@ -147,9 +144,11 @@ export const getHospitalDashboard = async (req, res) => {
 
 export const getHospitalStock = async (req, res) => {
   try {
-    const hospitalId = req.user._id;
+    const hospitalId = req.user.id;
 
-    const stock = await Blood.find({ hospital: hospitalId }).sort({ bloodGroup: 1 });
+    const stock = await Blood.find({ hospital: hospitalId })
+      .sort({ bloodGroup: 1 })
+      .lean();
 
     res.json({ 
       success: true, 
@@ -166,18 +165,24 @@ export const getHospitalStock = async (req, res) => {
 
 export const getHospitalHistory = async (req, res) => {
   try {
-    const hospitalId = req.user._id;
+    const hospitalId = req.user.id;
 
-    const hospital = await Facility.findById(hospitalId).select("history lastLogin");
+    const hospital = await Facility.findById(hospitalId)
+      .select("history lastLogin")
+      .lean();
 
-    if (!hospital) return res.status(404).json({ 
-      success: false, 
-      message: "Hospital not found" 
-    });
+    if (!hospital) {
+      return res.status(404).json({ 
+        success: false, 
+        message: "Hospital not found" 
+      });
+    }
+
+    const history = hospital.history || [];
 
     res.json({
       success: true,
-      history: hospital.history.sort((a, b) => new Date(b.date) - new Date(a.date))
+      history: history.sort((a, b) => new Date(b.date) - new Date(a.date))
     });
 
   } catch (error) {
@@ -189,7 +194,9 @@ export const getHospitalHistory = async (req, res) => {
   }
 };
 
-// Add to bloodLabController.js
+/* ==============================================================
+   DONOR DIRECTORY (Blood Lab Access)
+   ============================================================== */
 
 /**
  * @desc Get all donors with filtering and pagination
@@ -208,10 +215,8 @@ export const getAllDonors = async (req, res) => {
       limit = 20
     } = req.query;
 
-    // Build filter object
     const filter = {};
 
-    // Search filter
     if (search) {
       filter.$or = [
         { fullName: { $regex: search, $options: "i" } },
@@ -221,17 +226,14 @@ export const getAllDonors = async (req, res) => {
       ];
     }
 
-    // Blood group filter
     if (bloodGroup !== "all") {
       filter.bloodGroup = bloodGroup;
     }
 
-    // City filter
     if (city !== "all") {
       filter['address.city'] = { $regex: city, $options: "i" };
     }
 
-    // Availability filter
     if (availability !== "all") {
       const threeMonthsAgo = new Date();
       threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
@@ -242,46 +244,39 @@ export const getAllDonors = async (req, res) => {
           { lastDonationDate: { $exists: false } }
         ];
       } else if (availability === "soon") {
-        const oneWeekAgo = new Date();
-        oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+        // ✅ FIXED: Changed invalid variable name ~83DaysAgo to days83Ago
+        const days83Ago = new Date(); 
+        days83Ago.setDate(days83Ago.getDate() - 83);
+        
         filter.lastDonationDate = {
           $gte: threeMonthsAgo,
-          $lte: oneWeekAgo
+          $lte: days83Ago
         };
       }
     }
 
-    // Sort options
     const sortOptions = {};
     switch (sortBy) {
-      case "name":
-        sortOptions.fullName = 1;
-        break;
-      case "bloodGroup":
-        sortOptions.bloodGroup = 1;
-        break;
-      case "city":
-        sortOptions['address.city'] = 1;
-        break;
+      case "name": sortOptions.fullName = 1; break;
+      case "bloodGroup": sortOptions.bloodGroup = 1; break;
+      case "city": sortOptions['address.city'] = 1; break;
       case "lastDonation":
-      default:
-        sortOptions.lastDonationDate = -1;
-        break;
+      default: sortOptions.lastDonationDate = -1; break;
     }
 
-    const skip = (page - 1) * parseInt(limit);
+    const skip = (parseInt(page) - 1) * parseInt(limit);
 
-    // Get donors with pagination
     const [donors, total] = await Promise.all([
       Donor.find(filter)
         .select('fullName email phone bloodGroup lastDonationDate donationHistory address')
         .sort(sortOptions)
         .skip(skip)
-        .limit(parseInt(limit)),
+        .limit(parseInt(limit))
+        .lean(),
       Donor.countDocuments(filter)
     ]);
 
-    // Calculate stats
+    // Calculate stats efficiently
     const threeMonthsAgo = new Date();
     threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
 
@@ -303,9 +298,9 @@ export const getAllDonors = async (req, res) => {
       pagination: {
         total,
         currentPage: parseInt(page),
-        totalPages: Math.ceil(total / limit),
-        hasNext: page * limit < total,
-        hasPrev: page > 1
+        totalPages: Math.ceil(total / parseInt(limit)),
+        hasNext: parseInt(page) * parseInt(limit) < total,
+        hasPrev: parseInt(page) > 1
       },
       stats: {
         total,
@@ -327,14 +322,13 @@ export const getAllDonors = async (req, res) => {
 export const logContactAttempt = async (req, res) => {
   try {
     const donorId = req.params.id;
-    const labId = req.user._id;
+    const labId = req.user.id;
 
     const donor = await Donor.findById(donorId);
     if (!donor) {
       return res.status(404).json({ success: false, message: "Donor not found" });
     }
 
-    // Add to facility history
     await Facility.findByIdAndUpdate(labId, {
       $push: {
         history: {
@@ -346,8 +340,10 @@ export const logContactAttempt = async (req, res) => {
       },
     });
 
-    // Add to donor contact history
-    donor.contactHistory = donor.contactHistory || [];
+    if (!donor.contactHistory) {
+      donor.contactHistory = [];
+    }
+    
     donor.contactHistory.push({
       contactedBy: labId,
       contactDate: new Date(),
