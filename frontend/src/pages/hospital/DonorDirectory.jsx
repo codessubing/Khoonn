@@ -2,23 +2,15 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import { toast } from "react-hot-toast";
 import {
-  Search,
-  User,
-  Phone,
-  Mail,
-  MapPin,
-  Droplet,
-  Calendar,
-  Filter,
-  Heart,
-  Shield,
-  ChevronDown,
-  ChevronUp,
-  PhoneCall,
-  MessageCircle,
-  Mail as MailIcon,
-  X,
+  Search, User, Phone, Mail, MapPin, Droplet, Calendar, Filter,
+  Heart, Shield, ChevronDown, ChevronUp, PhoneCall, MessageCircle,
+  Mail as MailIcon, X,
 } from "lucide-react";
+
+// ✅ PRODUCTION FIX: Dynamic API base URL
+const API_BASE_URL = import.meta.env.PROD
+  ? "https://khoonn-backend.onrender.com"
+  : "http://localhost:5000";
 
 const DonorDirectory = () => {
   const [donors, setDonors] = useState([]);
@@ -33,11 +25,10 @@ const DonorDirectory = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [selectedDonor, setSelectedDonor] = useState(null);
   const [showContactModal, setShowContactModal] = useState(false);
-  const [stats, setStats] = useState({
-    total: 0,
-    available: 0,
-    rareBlood: 0,
-  });
+  const [stats, setStats] = useState({ total: 0, available: 0, rareBlood: 0 });
+
+  // ✅ FIXED: Uses dynamic API_BASE_URL instead of relative paths
+  const API_URL = `${API_BASE_URL}/api/hospital`;
 
   const fetchDonors = async () => {
     setLoading(true);
@@ -51,7 +42,8 @@ const DonorDirectory = () => {
         sortBy: filters.sortBy,
       });
 
-      const res = await axios.get(`/api/hospital/donors?${queryParams}`, {
+      // ✅ FIXED: Absolute URL pointing to Render backend
+      const res = await axios.get(`${API_URL}/donors?${queryParams}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -59,7 +51,7 @@ const DonorDirectory = () => {
       setStats(res.data.stats || { total: 0, available: 0, rareBlood: 0 });
     } catch (err) {
       console.error("Fetch donors error:", err);
-      toast.error("Failed to load donors");
+      toast.error(err.response?.data?.message || "Failed to load donors");
     } finally {
       setLoading(false);
     }
@@ -78,8 +70,9 @@ const DonorDirectory = () => {
   const logContactAttempt = async (donorId) => {
     try {
       const token = localStorage.getItem("token");
+      // ✅ FIXED: Absolute URL pointing to Render backend
       await axios.post(
-        `/api/hospital/donors/${donorId}/contact`,
+        `${API_URL}/donors/${donorId}/contact`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -192,39 +185,27 @@ const DonorDirectory = () => {
               <div className="p-2 rounded-lg bg-primary/10">
                 <User className="w-4 h-4 text-primary" />
               </div>
-              <span className="text-xs font-medium text-muted-foreground">
-                Total Donors
-              </span>
+              <span className="text-xs font-medium text-muted-foreground">Total Donors</span>
             </div>
-            <div className="text-2xl font-bold tracking-tight text-foreground">
-              {stats.total}
-            </div>
+            <div className="text-2xl font-bold tracking-tight text-foreground">{stats.total}</div>
           </div>
           <div className="bg-card border border-border rounded-xl p-5">
             <div className="flex items-center gap-3 mb-2">
               <div className="p-2 rounded-lg bg-green-500/10">
                 <Heart className="w-4 h-4 text-green-600 dark:text-green-400" />
               </div>
-              <span className="text-xs font-medium text-muted-foreground">
-                Available Now
-              </span>
+              <span className="text-xs font-medium text-muted-foreground">Available Now</span>
             </div>
-            <div className="text-2xl font-bold tracking-tight text-foreground">
-              {stats.available}
-            </div>
+            <div className="text-2xl font-bold tracking-tight text-foreground">{stats.available}</div>
           </div>
           <div className="bg-card border border-border rounded-xl p-5">
             <div className="flex items-center gap-3 mb-2">
               <div className="p-2 rounded-lg bg-purple-500/10">
                 <Shield className="w-4 h-4 text-purple-600 dark:text-purple-400" />
               </div>
-              <span className="text-xs font-medium text-muted-foreground">
-                Rare Blood Types
-              </span>
+              <span className="text-xs font-medium text-muted-foreground">Rare Blood Types</span>
             </div>
-            <div className="text-2xl font-bold tracking-tight text-foreground">
-              {stats.rareBlood}
-            </div>
+            <div className="text-2xl font-bold tracking-tight text-foreground">{stats.rareBlood}</div>
           </div>
         </div>
 
@@ -256,31 +237,21 @@ const DonorDirectory = () => {
           {showFilters && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-4 pt-4 border-t border-border">
               <div>
-                <label className="block text-sm font-medium text-foreground mb-1.5">
-                  Blood Group
-                </label>
+                <label className="block text-sm font-medium text-foreground mb-1.5">Blood Group</label>
                 <select
                   value={filters.bloodGroup}
-                  onChange={(e) =>
-                    setFilters({ ...filters, bloodGroup: e.target.value })
-                  }
+                  onChange={(e) => setFilters({ ...filters, bloodGroup: e.target.value })}
                   className="input-minimal w-full"
                 >
                   <option value="all">All Blood Groups</option>
-                  {bloodGroups
-                    .filter((bg) => bg !== "all")
-                    .map((bg) => (
-                      <option key={bg} value={bg}>
-                        {bg}
-                      </option>
-                    ))}
+                  {bloodGroups.filter((bg) => bg !== "all").map((bg) => (
+                    <option key={bg} value={bg}>{bg}</option>
+                  ))}
                 </select>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-foreground mb-1.5">
-                  City
-                </label>
+                <label className="block text-sm font-medium text-foreground mb-1.5">City</label>
                 <select
                   value={filters.city}
                   onChange={(e) => setFilters({ ...filters, city: e.target.value })}
@@ -298,14 +269,10 @@ const DonorDirectory = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-foreground mb-1.5">
-                  Availability
-                </label>
+                <label className="block text-sm font-medium text-foreground mb-1.5">Availability</label>
                 <select
                   value={filters.availability}
-                  onChange={(e) =>
-                    setFilters({ ...filters, availability: e.target.value })
-                  }
+                  onChange={(e) => setFilters({ ...filters, availability: e.target.value })}
                   className="input-minimal w-full"
                 >
                   <option value="all">All Donors</option>
@@ -315,9 +282,7 @@ const DonorDirectory = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-foreground mb-1.5">
-                  Sort By
-                </label>
+                <label className="block text-sm font-medium text-foreground mb-1.5">Sort By</label>
                 <select
                   value={filters.sortBy}
                   onChange={(e) => setFilters({ ...filters, sortBy: e.target.value })}
@@ -344,9 +309,7 @@ const DonorDirectory = () => {
             <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4 text-muted-foreground/50">
               <User size={32} />
             </div>
-            <h3 className="text-lg font-semibold text-foreground mb-2">
-              No donors found
-            </h3>
+            <h3 className="text-lg font-semibold text-foreground mb-2">No donors found</h3>
             <p className="text-sm text-muted-foreground max-w-sm mx-auto">
               {searchTerm || filters.bloodGroup !== "all" || filters.city !== "all"
                 ? "Try adjusting your search filters"
@@ -375,22 +338,14 @@ const DonorDirectory = () => {
                           {donor.fullName}
                         </h3>
                         <div className="flex items-center gap-2 mt-1">
-                          <span
-                            className={`px-2 py-0.5 rounded-full text-xs font-bold border ${getBloodGroupBadgeClass(
-                              donor.bloodGroup
-                            )}`}
-                          >
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-bold border ${getBloodGroupBadgeClass(donor.bloodGroup)}`}>
                             {donor.bloodGroup}
                           </span>
-                          {isRare && (
-                            <Shield size={14} className="text-purple-500 shrink-0" />
-                          )}
+                          {isRare && <Shield size={14} className="text-purple-500 shrink-0" />}
                         </div>
                       </div>
                     </div>
-                    <span
-                      className={`px-2.5 py-1 rounded-full text-xs font-medium border shrink-0 ${availability.color}`}
-                    >
+                    <span className={`px-2.5 py-1 rounded-full text-xs font-medium border shrink-0 ${availability.color}`}>
                       {availability.text}
                     </span>
                   </div>
@@ -399,9 +354,7 @@ const DonorDirectory = () => {
                   <div className="space-y-2.5 mb-5 flex-1">
                     <div className="flex items-center gap-2.5 text-sm text-muted-foreground">
                       <Phone size={14} className="text-primary shrink-0" />
-                      <span className="text-foreground font-medium">
-                        {donor.phone}
-                      </span>
+                      <span className="text-foreground font-medium">{donor.phone}</span>
                     </div>
                     <div className="flex items-center gap-2.5 text-sm text-muted-foreground">
                       <Mail size={14} className="text-primary shrink-0" />
@@ -410,22 +363,16 @@ const DonorDirectory = () => {
                     {donor.address?.city && (
                       <div className="flex items-center gap-2.5 text-sm text-muted-foreground">
                         <MapPin size={14} className="text-primary shrink-0" />
-                        <span className="truncate">
-                          {donor.address.city}, {donor.address.state}
-                        </span>
+                        <span className="truncate">{donor.address.city}, {donor.address.state}</span>
                       </div>
                     )}
                     <div className="flex items-center gap-2.5 text-sm text-muted-foreground">
                       <Calendar size={14} className="text-primary shrink-0" />
-                      <span>
-                        Last: {getTimeSinceLastDonation(donor.lastDonationDate)}
-                      </span>
+                      <span>Last: {getTimeSinceLastDonation(donor.lastDonationDate)}</span>
                     </div>
                     <div className="flex items-center gap-2.5 text-sm text-muted-foreground">
                       <Droplet size={14} className="text-primary shrink-0" />
-                      <span>
-                        Total: {donor.donationHistory?.length || 0} donations
-                      </span>
+                      <span>Total: {donor.donationHistory?.length || 0} donations</span>
                     </div>
                   </div>
 
@@ -492,39 +439,23 @@ const DonorDirectory = () => {
                   <MailIcon size={20} className="shrink-0" />
                   <div className="text-left">
                     <div className="font-semibold text-sm">Send Email</div>
-                    <div className="text-xs opacity-90 truncate max-w-[200px]">
-                      {selectedDonor.email}
-                    </div>
+                    <div className="text-xs opacity-90 truncate max-w-[200px]">{selectedDonor.email}</div>
                   </div>
                 </a>
               </div>
 
               <div className="mt-6 p-4 bg-muted/50 rounded-lg border border-border">
-                <h4 className="font-semibold text-foreground text-sm mb-2">
-                  Donor Information
-                </h4>
+                <h4 className="font-semibold text-foreground text-sm mb-2">Donor Information</h4>
                 <div className="text-xs text-muted-foreground space-y-1.5">
-                  <div>
-                    <span className="font-medium text-foreground">Blood Group:</span>{" "}
-                    {selectedDonor.bloodGroup}
-                  </div>
-                  <div>
-                    <span className="font-medium text-foreground">Last Donation:</span>{" "}
-                    {getTimeSinceLastDonation(selectedDonor.lastDonationDate)}
-                  </div>
+                  <div><span className="font-medium text-foreground">Blood Group:</span> {selectedDonor.bloodGroup}</div>
+                  <div><span className="font-medium text-foreground">Last Donation:</span> {getTimeSinceLastDonation(selectedDonor.lastDonationDate)}</div>
                   {selectedDonor.address?.city && (
-                    <div>
-                      <span className="font-medium text-foreground">Location:</span>{" "}
-                      {selectedDonor.address.city}, {selectedDonor.address.state}
-                    </div>
+                    <div><span className="font-medium text-foreground">Location:</span> {selectedDonor.address.city}, {selectedDonor.address.state}</div>
                   )}
                 </div>
               </div>
 
-              <button
-                onClick={() => setShowContactModal(false)}
-                className="w-full mt-4 btn-ghost justify-center"
-              >
+              <button onClick={() => setShowContactModal(false)} className="w-full mt-4 btn-ghost justify-center">
                 Close
               </button>
             </div>

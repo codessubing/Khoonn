@@ -1,29 +1,26 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import {
-  Droplets,
-  PlusCircle,
-  MinusCircle,
-  RefreshCw,
-  AlertTriangle,
-  Beaker,
-  TrendingDown,
-  Loader2,
+  Droplets, PlusCircle, MinusCircle, RefreshCw, AlertTriangle,
+  Beaker, TrendingDown, Loader2,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
+
+// ✅ PRODUCTION FIX: Dynamic API base URL
+const API_BASE_URL = import.meta.env.PROD
+  ? "https://khoonn-backend.onrender.com"
+  : "http://localhost:5000";
 
 const BloodStock = () => {
   const [stock, setStock] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [action, setAction] = useState("add");
-  const [form, setForm] = useState({
-    bloodType: "",
-    quantity: "",
-  });
+  const [form, setForm] = useState({ bloodType: "", quantity: "" });
 
   const token = localStorage.getItem("token");
-  const API_URL = `${import.meta.env.VITE_API_URL || ""}/api/blood-lab`;
+  // ✅ FIXED: Uses dynamic API_BASE_URL instead of VITE_API_URL
+  const API_URL = `${API_BASE_URL}/api/blood-lab`;
 
   const bloodTypes = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
 

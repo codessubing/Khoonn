@@ -5,6 +5,11 @@ import { AlertCircle, Loader2 } from "lucide-react";
 import Header from "../../components/Header";
 import Footer from "../../components/Footer";
 
+// ✅ PRODUCTION FIX: Dynamic API base URL
+const API_BASE_URL = import.meta.env.PROD
+  ? "https://khoonn-backend.onrender.com"
+  : "http://localhost:5000";
+
 export default function Login() {
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
@@ -28,8 +33,8 @@ export default function Login() {
     }
 
     try {
-      const baseURL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
-      const apiUrl = `${baseURL}/auth/login`;
+      // ✅ FIXED: Uses dynamic API_BASE_URL instead of VITE_API_URL
+      const apiUrl = `${API_BASE_URL}/api/auth/login`;
 
       console.log("Attempting login at:", apiUrl);
 

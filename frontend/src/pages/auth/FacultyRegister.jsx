@@ -4,11 +4,16 @@ import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import { AlertCircle, Eye, EyeOff, Loader2 } from "lucide-react";
 
+// ✅ PRODUCTION FIX: Dynamic API base URL
+const API_BASE_URL = import.meta.env.PROD
+  ? "https://khoonn-backend.onrender.com"
+  : "http://localhost:5000";
+
 // Constants for better maintainability
 const FACILITY_TYPES = ["Hospital", "Blood Lab"];
 const FACILITY_CATEGORIES = ["Government", "Private", "Trust", "Charity", "Other"];
 
-// ✅ UPDATED: Nepal Provinces and major cities/districts
+// Nepal Provinces and major cities/districts
 const NEPAL_LOCATIONS = {
   "Koshi Province": ["Biratnagar", "Dharan", "Itahari", "Damak", "Birtamod"],
   "Madhesh Province": ["Janakpur", "Birgunj", "Kalaiya", "Lahan", "Rajbiraj"],
@@ -45,7 +50,6 @@ const validators = {
   phone: (value) => {
     if (!value) return "Phone number is required";
     if (value.length !== 10) return "Phone number must be exactly 10 digits";
-    // ✅ UPDATED: Nepal phone numbers start with 9
     if (!/^[9][0-9]{9}$/.test(value)) return "Phone number must start with 9 (e.g., 98XXXXXXXX)";
     return "";
   },
@@ -61,7 +65,6 @@ const validators = {
   "address.state": (value) => (!value.trim() ? "Province is required" : ""),
   "address.pincode": (value) => {
     if (!value) return "Pincode is required";
-    // ✅ UPDATED: Nepal uses 5-digit postal codes
     if (!/^[0-9]{5}$/.test(value)) return "Pincode must be exactly 5 digits (e.g., 32900)";
     return "";
   },
@@ -253,11 +256,10 @@ export default function FacilityRegisterForm() {
       role: roleSlug,
     };
 
-    // ✅ FIXED: Prevents the double /api/api/ bug
-    const baseURL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
-    const API_URL = `${baseURL}/auth/register`; 
+    // ✅ FIXED: Uses dynamic API_BASE_URL instead of VITE_API_URL
+    const API_URL = `${API_BASE_URL}/api/auth/register`; 
 
-    console.log("Submitting to:", API_URL); // Verify this in your browser console
+    console.log("Submitting to:", API_URL);
 
     try {
       const response = await fetch(API_URL, {

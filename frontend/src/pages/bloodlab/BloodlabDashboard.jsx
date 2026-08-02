@@ -1,25 +1,15 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import {
-  Droplet,
-  Calendar,
-  Users,
-  Activity,
-  Clock,
-  MapPin,
-  Phone,
-  Mail,
-  Building2,
-  Shield,
-  LogIn,
-  AlertCircle,
-  RefreshCw,
-  Beaker,
-  TrendingUp,
+  Droplet, Calendar, Users, Activity, Clock, MapPin, Phone, Mail,
+  Building2, Shield, LogIn, AlertCircle, RefreshCw, Beaker, TrendingUp,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 
-const API_URL = `${import.meta.env.VITE_API_URL || ""}/api/blood-lab`;
+// ✅ PRODUCTION FIX: Dynamic API base URL
+const API_BASE_URL = import.meta.env.PROD
+  ? "https://khoonn-backend.onrender.com"
+  : "http://localhost:5000";
 
 const BloodLabDashboard = () => {
   const [dashboard, setDashboard] = useState(null);
@@ -27,6 +17,9 @@ const BloodLabDashboard = () => {
   const [lab, setLab] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  // ✅ FIXED: Uses dynamic API_BASE_URL instead of VITE_API_URL
+  const API_URL = `${API_BASE_URL}/api/blood-lab`;
 
   const fetchDashboardData = async () => {
     try {

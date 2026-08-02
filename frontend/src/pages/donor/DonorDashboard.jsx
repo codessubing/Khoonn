@@ -1,29 +1,16 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import {
-  Droplet,
-  Calendar,
-  Users,
-  Activity,
-  Clock,
-  MapPin,
-  Phone,
-  Mail,
-  User,
-  Shield,
-  Award,
-  Heart,
-  TrendingUp,
-  RefreshCw,
-  AlertCircle,
-  Download,
-  Share2,
+  Droplet, Calendar, Users, Activity, Clock, MapPin, Phone, Mail,
+  User, Shield, Award, Heart, TrendingUp, RefreshCw, AlertCircle,
+  Download, Share2,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 
-// ✅ FIX: Prevent the double /api/api/ bug
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
-const API_URL = `${API_BASE}/donor`;
+// ✅ PRODUCTION FIX: Dynamic API base URL
+const API_BASE_URL = import.meta.env.PROD
+  ? "https://khoonn-backend.onrender.com"
+  : "http://localhost:5000";
 
 const DonorDashboard = () => {
   const [dashboard, setDashboard] = useState(null);
@@ -31,6 +18,9 @@ const DonorDashboard = () => {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  // ✅ FIXED: Uses dynamic API_BASE_URL instead of VITE_API_URL
+  const API_URL = `${API_BASE_URL}/api/donor`;
 
   const fetchDashboardData = async () => {
     try {
@@ -64,7 +54,7 @@ const DonorDashboard = () => {
       const nextMilestone = totalDonations < 5 ? 5 : totalDonations < 10 ? 10 : 15;
       const completionRate = Math.min(100, (totalDonations / nextMilestone) * 100);
 
-      // ✅ FIX: Safely merge stats from the backend without nesting issues
+      // Safely merge stats from the backend without nesting issues
       const backendStats = statsRes.data?.dashboard || statsRes.data || {};
 
       setDashboard({

@@ -3,15 +3,14 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { toast } from "react-hot-toast";
 import { 
-  Droplet, 
-  Plus, 
-  Minus, 
-  AlertTriangle, 
-  CheckCircle, 
-  Calendar, 
-  RefreshCw, 
-  Loader2 
+  Droplet, Plus, Minus, AlertTriangle, CheckCircle, Calendar, 
+  RefreshCw, Loader2 
 } from "lucide-react";
+
+// ✅ PRODUCTION FIX: Dynamic API base URL
+const API_BASE_URL = import.meta.env.PROD
+  ? "https://khoonn-backend.onrender.com"
+  : "http://localhost:5000";
 
 const HospitalBloodStock = () => {
   const navigate = useNavigate();
@@ -24,13 +23,17 @@ const HospitalBloodStock = () => {
     bloodTypes: 0
   });
 
+  // ✅ FIXED: Uses dynamic API_BASE_URL instead of relative paths
+  const API_URL = `${API_BASE_URL}/api/hospital`;
+
   const bloodTypes = ["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"];
 
   const loadStock = async () => {
     try {
       setLoading(true);
       const token = localStorage.getItem("token");
-      const res = await axios.get("/api/hospital/blood/stock", {
+      // ✅ FIXED: Absolute URL pointing to Render backend
+      const res = await axios.get(`${API_URL}/blood/stock`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       
@@ -39,7 +42,7 @@ const HospitalBloodStock = () => {
       calculateStats(stockData);
     } catch (err) {
       console.error("Load stock error:", err);
-      toast.error("Failed to load blood stock");
+      toast.error(err.response?.data?.message || "Failed to load blood stock");
     } finally {
       setLoading(false);
     }

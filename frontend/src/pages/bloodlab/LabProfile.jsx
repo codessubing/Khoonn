@@ -2,24 +2,14 @@ import { useEffect, useState, useCallback } from "react";
 import axios from "axios";
 import { toast, Toaster } from "react-hot-toast";
 import {
-  Loader2,
-  Save,
-  Edit3,
-  X,
-  MapPin,
-  Mail,
-  FlaskConical,
-  Phone,
-  User,
-  Shield,
-  Heart,
-  Droplet,
-  Clock,
-  Building,
-  AlertCircle,
+  Loader2, Save, Edit3, X, MapPin, Mail, FlaskConical, Phone,
+  User, Shield, Heart, Droplet, Clock, Building, AlertCircle,
 } from "lucide-react";
 
-const API_BASE_URL = "/api";
+// ✅ PRODUCTION FIX: Dynamic API base URL
+const API_BASE_URL = import.meta.env.PROD
+  ? "https://khoonn-backend.onrender.com"
+  : "http://localhost:5000";
 
 const defaultOperatingHours = {
   weekdays: "",
@@ -47,6 +37,9 @@ const LabProfile = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState({});
+
+  // ✅ FIXED: Uses dynamic API_BASE_URL instead of hardcoded '/api'
+  const API_ENDPOINT = `${API_BASE_URL}/api`;
 
   const initializeOperatingHours = (hoursData) => {
     if (hoursData && typeof hoursData === "object" && !Array.isArray(hoursData)) {
@@ -99,7 +92,8 @@ const LabProfile = () => {
         throw new Error("No authorization token found.");
       }
 
-      const { data } = await axios.get(`${API_BASE_URL}/facility/profile`, {
+      // ✅ FIXED: Absolute URL pointing to Render backend
+      const { data } = await axios.get(`${API_ENDPOINT}/facility/profile`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -188,7 +182,8 @@ const LabProfile = () => {
         return;
       }
 
-      const { data } = await axios.put(`${API_BASE_URL}/facility/profile`, formData, {
+      // ✅ FIXED: Absolute URL pointing to Render backend
+      const { data } = await axios.put(`${API_ENDPOINT}/facility/profile`, formData, {
         headers: { Authorization: `Bearer ${token}` },
       });
 

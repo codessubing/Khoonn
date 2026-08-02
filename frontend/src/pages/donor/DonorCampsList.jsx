@@ -2,25 +2,15 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import axios from "axios";
 import { toast, Toaster } from "react-hot-toast";
 import {
-  MapPin,
-  Calendar,
-  Clock,
-  Filter,
-  Loader2,
-  RefreshCw,
-  ChevronLeft,
-  ChevronRight,
-  Droplet,
-  Heart,
-  Search,
-  Users,
-  Building2,
-  ListPlus,
-  AlertCircle,
+  MapPin, Calendar, Clock, Filter, Loader2, RefreshCw,
+  ChevronLeft, ChevronRight, Droplet, Heart, Search, Users,
+  Building2, ListPlus, AlertCircle,
 } from "lucide-react";
 
-// ✅ FIX: Use the full base URL to prevent double /api/ issues or wrong port hits
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+// ✅ PRODUCTION FIX: Dynamic API base URL
+const API_BASE_URL = import.meta.env.PROD
+  ? "https://khoonn-backend.onrender.com"
+  : "http://localhost:5000";
 
 const STATUS_OPTIONS = [
   { value: "all", label: "All Camps" },
@@ -45,20 +35,16 @@ const CampCard = ({ camp }) => {
 
   const campDate = new Date(camp.date);
   const dateStr = campDate.toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
+    year: "numeric", month: "short", day: "numeric",
   });
   
   const timeStr = `${camp.time?.start || "N/A"} - ${camp.time?.end || "N/A"}`;
   
   const expectedDonors = camp.expectedDonors || 0;
   const actualDonors = camp.actualDonors || 0; 
-  
   const slotsAvailable = expectedDonors > 0 ? expectedDonors - actualDonors : 0;
   const isFull = slotsAvailable <= 0 && expectedDonors > 0 && !isCompleted && !isCancelled;
 
-  // ✅ FIX: Safely destructure location to prevent crashes if it's missing
   const location = camp.location || {};
   const locationStr = `${location.venue || "Venue TBA"}, ${location.city || "City TBA"}, ${location.state || "State TBA"}`;
   const hospitalName = camp.hospital?.name || "Associated Facility";
@@ -78,7 +64,6 @@ const CampCard = ({ camp }) => {
     <div className={`bg-card border rounded-xl p-5 transition-all duration-300 hover:shadow-md hover:-translate-y-0.5 flex flex-col h-full ${
       isCancelled ? "border-destructive/20 opacity-70" : "border-border"
     }`}>
-      {/* Header with status badge */}
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 mb-4">
         <h4 className={`text-base font-semibold leading-tight flex-1 ${
           isCancelled ? "text-muted-foreground" : "text-foreground"
@@ -90,13 +75,11 @@ const CampCard = ({ camp }) => {
         </span>
       </div>
       
-      {/* Hospital/Facility Name */}
       <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4 font-medium">
         <Building2 className="w-4 h-4 text-primary shrink-0" />
         <span className="truncate">{hospitalName}</span>
       </div>
 
-      {/* Primary Camp details */}
       <div className="space-y-3 text-sm text-muted-foreground mb-4 flex-1">
         <div className="flex items-start gap-3">
           <MapPin className="w-4 h-4 text-primary shrink-0 mt-0.5" />
@@ -112,7 +95,6 @@ const CampCard = ({ camp }) => {
         </div>
       </div>
 
-      {/* Donor Metrics Summary */}
       <div className="pt-4 border-t border-border space-y-3">
         <div className="flex items-center gap-2 text-sm">
           <Users className="w-4 h-4 text-primary shrink-0" />
@@ -151,13 +133,10 @@ export const DonorCampsList = () => {
   const [error, setError] = useState(null);
   
   const [pagination, setPagination] = useState({
-    page: 1,
-    limit: 9,
-    total: 0,
-    totalPages: 1,
-    currentPage: 1,
+    page: 1, limit: 9, total: 0, totalPages: 1, currentPage: 1,
   });
 
+  // ✅ FIXED: Uses dynamic API_BASE_URL instead of VITE_API_URL
   const fetchCamps = useCallback(async () => {
     const token = localStorage.getItem("token"); 
     if (!token) {
@@ -179,13 +158,12 @@ export const DonorCampsList = () => {
         ...(searchTerm && { q: searchTerm }),
       }).toString();
       
-      // ✅ FIX: Uses the correct absolute URL
-      const apiUrl = `${API_BASE_URL}/donor/camps?${params}`;
+      // ✅ FIXED: Absolute URL pointing to Render backend
+      const apiUrl = `${API_BASE_URL}/api/donor/camps?${params}`;
       const response = await axios.get(apiUrl, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      // ✅ FIX: Safely extract data whether it's nested or flat
       const responseData = response.data.data || response.data;
       
       if (responseData && (responseData.camps || Array.isArray(responseData))) {
@@ -207,7 +185,7 @@ export const DonorCampsList = () => {
       
       if (err.response?.status === 401 || err.response?.status === 403) {
         message = "Authentication failed or unauthorized. Please log in again.";
-        localStorage.removeItem("token"); // Clear invalid token
+        localStorage.removeItem("token");
       }
       
       toast.error(message);

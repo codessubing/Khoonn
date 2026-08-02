@@ -4,6 +4,11 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import { AlertCircle, Eye, EyeOff, Loader2 } from "lucide-react";
 
+// ✅ PRODUCTION FIX: Dynamic API base URL
+const API_BASE_URL = import.meta.env.PROD
+  ? "https://khoonn-backend.onrender.com"
+  : "http://localhost:5000";
+
 // Constants for better maintainability
 const GENDERS = ["Male", "Female", "Other"];
 const BLOOD_GROUPS = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
@@ -237,21 +242,21 @@ export default function DonorRegisterForm() {
 
     // ✅ FIX: Construct payload to EXACTLY match your Mongoose schema
     const submissionPayload = {
-      fullName: formData.fullName,       // Schema expects 'fullName'
+      fullName: formData.fullName,
       email: formData.email,
       password: formData.password,
       phone: formData.phone,
       role: "donor",
-      bloodGroup: formData.bloodGroup,   // Schema expects 'bloodGroup'
-      age: calculateAge(formData.dob),   // Calculate age from DOB
-      gender: formData.gender,           // Schema expects 'gender'
+      bloodGroup: formData.bloodGroup,
+      age: calculateAge(formData.dob),
+      gender: formData.gender,
       healthInfo: {
         weight: parseFloat(formData.healthInfo.weight) || 0,
         height: parseFloat(formData.healthInfo.height) || 0,
         hasDiseases: formData.healthInfo.hasDiseases,
         diseaseDetails: formData.healthInfo.diseaseDetails || ""
       },
-      address: {                         // Schema expects nested address object
+      address: {
         street: formData.address.street,
         city: formData.address.city,
         state: formData.address.state,
@@ -259,8 +264,8 @@ export default function DonorRegisterForm() {
       }
     };
 
-    const baseURL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
-    const API_URL = `${baseURL}/auth/register`;
+    // ✅ FIXED: Uses dynamic API_BASE_URL instead of VITE_API_URL
+    const API_URL = `${API_BASE_URL}/api/auth/register`;
 
     console.log("Submitting Donor Payload:", submissionPayload);
 

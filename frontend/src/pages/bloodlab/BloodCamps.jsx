@@ -1,23 +1,15 @@
 import { useEffect, useState } from "react";
 import {
-  Calendar,
-  Clock,
-  MapPin,
-  Users,
-  Plus,
-  Trash2,
-  Edit3,
-  Search,
-  ChevronDown,
-  ChevronUp,
-  Droplet,
-  CheckCircle,
-  XCircle,
-  MoreVertical,
-  Loader2,
-  AlertCircle,
+  Calendar, Clock, MapPin, Users, Plus, Trash2, Edit3, Search,
+  ChevronDown, ChevronUp, Droplet, CheckCircle, XCircle, MoreVertical,
+  Loader2, AlertCircle,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
+
+// ✅ PRODUCTION FIX: Dynamic API base URL
+const API_BASE_URL = import.meta.env.PROD
+  ? "https://khoonn-backend.onrender.com"
+  : "http://localhost:5000";
 
 const BloodCamps = () => {
   const [camps, setCamps] = useState([]);
@@ -61,7 +53,8 @@ const BloodCamps = () => {
   const [actionMenu, setActionMenu] = useState(null);
 
   const token = localStorage.getItem("token");
-  const API_URL = `${import.meta.env.VITE_API_URL || ""}/api/blood-lab`;
+  // ✅ FIXED: Uses dynamic API_BASE_URL instead of VITE_API_URL
+  const API_URL = `${API_BASE_URL}/api/blood-lab`;
 
   const calculateStats = (campsData) => ({
     upcoming: campsData.filter((camp) => camp.status === "Upcoming").length,

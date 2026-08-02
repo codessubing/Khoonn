@@ -1,21 +1,14 @@
 import { useState, useEffect } from "react";
 import { toast } from "react-hot-toast";
 import {
-  Building,
-  MapPin,
-  Phone,
-  Mail,
-  Calendar,
-  FileText,
-  CheckCircle,
-  XCircle,
-  Clock,
-  Shield,
-  Download,
-  Eye,
-  RefreshCw,
-  AlertCircle,
+  Building, MapPin, Phone, Mail, Calendar, FileText, CheckCircle, XCircle,
+  Clock, Shield, Download, Eye, RefreshCw, AlertCircle,
 } from "lucide-react";
+
+// ✅ PRODUCTION FIX: Dynamic API base URL
+const API_BASE_URL = import.meta.env.PROD
+  ? "https://khoonn-backend.onrender.com"
+  : "http://localhost:5000";
 
 const AdminFacilities = () => {
   const [facilities, setFacilities] = useState([]);
@@ -26,7 +19,8 @@ const AdminFacilities = () => {
   const [refreshing, setRefreshing] = useState(false);
 
   const token = localStorage.getItem("token");
-  const API_URL = `${import.meta.env.VITE_API_URL || "http://localhost:5000/api"}/admin`;
+  // ✅ FIXED: Uses dynamic API_BASE_URL instead of VITE_API_URL
+  const API_URL = `${API_BASE_URL}/api/admin`;
 
   const fetchPendingFacilities = async (showToast = false) => {
     try {
@@ -39,6 +33,14 @@ const AdminFacilities = () => {
           "Content-Type": "application/json",
         },
       });
+
+      // ✅ ENHANCED: Handle auth failures explicitly
+      if (res.status === 401 || res.status === 403) {
+        localStorage.removeItem("token");
+        toast.error("Session expired. Please login again.");
+        window.location.href = "/login";
+        return;
+      }
 
       if (!res.ok) {
         throw new Error(`Failed to fetch facilities: ${res.status}`);
@@ -137,7 +139,6 @@ const AdminFacilities = () => {
     }
   };
 
-  // ✅ FIX: Removed unused 'filename' parameter
   const handleViewDocument = (documentUrl) => {
     if (!documentUrl) {
       toast.error("Document not available");
@@ -323,7 +324,6 @@ const AdminFacilities = () => {
 
                   {facility.documents?.registrationProof && (
                     <div className="mt-4 flex gap-2">
-                      {/* ✅ FIX: Updated onClick to only pass the URL */}
                       <button
                         onClick={(e) => {
                           e.stopPropagation();

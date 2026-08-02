@@ -2,21 +2,15 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import {
-  Building2,
-  MapPin,
-  Phone,
-  CalendarDays,
-  Activity,
-  Droplet,
-  Clock,
-  History,
-  Users,
-  AlertTriangle,
-  CheckCircle,
-  TrendingUp,
-  RefreshCw,
-  Loader2,
+  Building2, MapPin, Phone, CalendarDays, Activity, Droplet,
+  Clock, History, Users, AlertTriangle, CheckCircle, TrendingUp,
+  RefreshCw, Loader2,
 } from "lucide-react";
+
+// ✅ PRODUCTION FIX: Dynamic API base URL
+const API_BASE_URL = import.meta.env.PROD
+  ? "https://khoonn-backend.onrender.com"
+  : "http://localhost:5000";
 
 const HospitalDashboard = () => {
   const navigate = useNavigate();
@@ -32,6 +26,10 @@ const HospitalDashboard = () => {
     totalRequests: 0,
   });
 
+  // ✅ FIXED: Uses dynamic API_BASE_URL instead of VITE_API_URL
+  const FACILITY_API = `${API_BASE_URL}/api/facility`;
+  const HOSPITAL_API = `${API_BASE_URL}/api/hospital`;
+
   useEffect(() => {
     const fetchHospitalData = async () => {
       try {
@@ -41,8 +39,8 @@ const HospitalDashboard = () => {
           return;
         }
 
-        const apiUrl = `${import.meta.env.VITE_API_URL || ""}/api/facility/profile`;
-        const profileRes = await fetch(apiUrl, {
+        // ✅ FIXED: Absolute URL pointing to Render backend
+        const profileRes = await fetch(`${FACILITY_API}/profile`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
@@ -57,9 +55,10 @@ const HospitalDashboard = () => {
           throw new Error("No hospital data found in response");
         }
 
+        // ✅ FIXED: Absolute URLs pointing to Render backend
         const [stockRes, requestsRes] = await Promise.all([
-          axios.get("/api/hospital/blood/stock", { headers: { Authorization: `Bearer ${token}` } }),
-          axios.get("/api/hospital/blood/requests", { headers: { Authorization: `Bearer ${token}` } }),
+          axios.get(`${HOSPITAL_API}/blood/stock`, { headers: { Authorization: `Bearer ${token}` } }),
+          axios.get(`${HOSPITAL_API}/blood/requests`, { headers: { Authorization: `Bearer ${token}` } }),
         ]);
 
         const stockData = stockRes.data.data || [];
@@ -102,6 +101,10 @@ const HospitalDashboard = () => {
         });
       } catch (err) {
         console.error("Error fetching hospital data:", err);
+        if (err.response?.status === 401) {
+          localStorage.removeItem("token");
+          navigate("/login", { replace: true });
+        }
       } finally {
         setLoading(false);
       }

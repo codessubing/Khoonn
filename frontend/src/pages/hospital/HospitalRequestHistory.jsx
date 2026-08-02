@@ -2,31 +2,35 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import { toast } from "react-hot-toast";
 import { 
-  CheckCircle, 
-  XCircle, 
-  Clock, 
-  MapPin, 
-  Calendar, 
-  Loader2 
+  CheckCircle, XCircle, Clock, MapPin, Calendar, Loader2 
 } from "lucide-react";
+
+// ✅ PRODUCTION FIX: Dynamic API base URL
+const API_BASE_URL = import.meta.env.PROD
+  ? "https://khoonn-backend.onrender.com"
+  : "http://localhost:5000";
 
 const HospitalRequestHistory = () => {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // ✅ FIXED: Uses dynamic API_BASE_URL instead of relative paths
+  const API_URL = `${API_BASE_URL}/api/hospital`;
 
   useEffect(() => {
     const loadHistory = async () => {
       try {
         setLoading(true);
         const token = localStorage.getItem("token");
-        const res = await axios.get("/api/hospital/blood/requests", {
+        // ✅ FIXED: Absolute URL pointing to Render backend
+        const res = await axios.get(`${API_URL}/blood/requests`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
         setRequests(res.data.data || []);
       } catch (err) {
         console.error("Load history error:", err);
-        toast.error("Failed to load request history");
+        toast.error(err.response?.data?.message || "Failed to load request history");
       } finally {
         setLoading(false);
       }

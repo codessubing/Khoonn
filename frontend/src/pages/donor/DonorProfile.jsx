@@ -2,25 +2,14 @@ import { useEffect, useState, useCallback } from "react";
 import axios from "axios";
 import { toast, Toaster } from "react-hot-toast";
 import {
-  Loader2,
-  Save,
-  Edit3,
-  X,
-  MapPin,
-  Mail,
-  Phone,
-  User,
-  Shield,
-  Heart,
-  Droplet,
-  Calendar,
-  Scale,
-  Award,
-  AlertCircle,
+  Loader2, Save, Edit3, X, MapPin, Mail, Phone, User,
+  Shield, Heart, Droplet, Calendar, Scale, Award, AlertCircle,
 } from "lucide-react";
 
-// ✅ FIX: Use the full base URL to prevent double /api/ issues
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+// ✅ PRODUCTION FIX: Dynamic API base URL
+const API_BASE_URL = import.meta.env.PROD
+  ? "https://khoonn-backend.onrender.com"
+  : "http://localhost:5000";
 
 const BLOOD_GROUPS = ["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"];
 const GENDER_OPTIONS = [
@@ -51,9 +40,12 @@ const DonorProfile = () => {
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState({});
 
+  // ✅ FIXED: Uses dynamic API_BASE_URL instead of VITE_API_URL
+  const API_ENDPOINT = `${API_BASE_URL}/api/donor`;
+
   const validationRules = {
     fullName: { required: true, minLength: 2, maxLength: 50 },
-    phone: { required: true, pattern: /^[9][0-9]{9}$/ }, // ✅ Nepal phone format
+    phone: { required: true, pattern: /^[9][0-9]{9}$/ },
     age: { required: true, min: 18, max: 65 },
     gender: { required: true },
     weight: { required: true, min: 45, max: 200 },
@@ -61,7 +53,7 @@ const DonorProfile = () => {
     "address.street": { required: true, minLength: 2 },
     "address.city": { required: true, minLength: 2 },
     "address.state": { required: true, minLength: 2 },
-    "address.pincode": { required: true, pattern: /^[0-9]{5}$/ }, // ✅ FIX: 5-digit Nepal pincode
+    "address.pincode": { required: true, pattern: /^[0-9]{5}$/ },
     password: { minLength: 6 }
   };
 
@@ -87,11 +79,11 @@ const DonorProfile = () => {
       const token = localStorage.getItem("token");
       if (!token) throw new Error("No authorization token found.");
 
-      const { data } = await axios.get(`${API_BASE_URL}/donor/profile`, {
+      // ✅ FIXED: Absolute URL pointing to Render backend
+      const { data } = await axios.get(`${API_ENDPOINT}/profile`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      // ✅ FIX: Backend returns { success: true, user }, not { donor }
       const userData = data.user || data.donor || data;
 
       if (userData) {
@@ -147,7 +139,6 @@ const DonorProfile = () => {
   const handleChange = (e) => {
     const { name, value } = e.target;
 
-    // ✅ FIX: Properly update form data and clear errors on valid input
     setFormData((prev) => {
       if (name.startsWith("address.")) {
         const key = name.split(".")[1];
@@ -218,13 +209,13 @@ const DonorProfile = () => {
         payload.password = formData.password;
       }
 
-      const { data } = await axios.put(`${API_BASE_URL}/donor/profile`, payload, {
+      // ✅ FIXED: Absolute URL pointing to Render backend
+      const { data } = await axios.put(`${API_ENDPOINT}/profile`, payload, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
       if (data.success) {
         toast.success("Profile updated successfully! 🎉");
-        // Re-fetch to get the latest data from backend
         await fetchProfile();
         setIsEditing(false);
         setErrors({});
@@ -589,7 +580,7 @@ const DonorProfile = () => {
                           disabled={!isEditing}
                           className={getInputClass(fieldName, isEditing)}
                           placeholder={`Enter ${field === "pincode" ? "5-digit postal code" : field}`}
-                          maxLength={field === "pincode" ? 5 : undefined} // ✅ FIX: Max 5 digits
+                          maxLength={field === "pincode" ? 5 : undefined}
                         />
                         {errors[fieldName] && (
                           <p className="text-destructive text-xs mt-1.5 flex items-center gap-1.5">

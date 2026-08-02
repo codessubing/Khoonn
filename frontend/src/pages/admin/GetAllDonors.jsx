@@ -1,25 +1,14 @@
 import React, { useState, useEffect } from "react";
 import { toast } from "react-hot-toast";
 import {
-  User,
-  Heart,
-  Calendar,
-  Phone,
-  Mail,
-  MapPin,
-  RefreshCw,
-  CheckCircle,
-  XCircle,
-  Clock,
-  Droplet,
-  Weight,
-  Users,
-  Search,
-  ChevronDown,
-  ChevronUp,
+  User, Heart, Calendar, Phone, Mail, MapPin, RefreshCw, CheckCircle,
+  XCircle, Clock, Droplet, Weight, Users, Search, ChevronDown, ChevronUp,
 } from "lucide-react";
 
-const API_URL = `${import.meta.env.VITE_API_URL || "http://localhost:5000/api"}/admin`;
+// ✅ PRODUCTION FIX: Dynamic API base URL
+const API_BASE_URL = import.meta.env.PROD
+  ? "https://khoonn-backend.onrender.com"
+  : "http://localhost:5000";
 
 function GetAllDonors() {
   const [donors, setDonors] = useState([]);
@@ -34,6 +23,8 @@ function GetAllDonors() {
   });
 
   const token = localStorage.getItem("token");
+  // ✅ FIXED: Uses dynamic API_BASE_URL instead of VITE_API_URL
+  const API_URL = `${API_BASE_URL}/api/admin`;
   const bloodGroups = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
 
   const fetchAllDonors = async (showToast = false) => {
@@ -47,6 +38,14 @@ function GetAllDonors() {
           "Content-Type": "application/json",
         },
       });
+
+      // ✅ ENHANCED: Handle auth failures explicitly
+      if (res.status === 401 || res.status === 403) {
+        localStorage.removeItem("token");
+        toast.error("Session expired. Please login again.");
+        window.location.href = "/login";
+        return;
+      }
 
       if (!res.ok) {
         throw new Error(`Failed to fetch donors: ${res.status}`);
