@@ -81,11 +81,11 @@ function App() {
             element={<ProtectedRoute><DashboardLayout userRole="hospital" /></ProtectedRoute>}
           >
             <Route index element={<HospitalDashboard />} />
-            
-            {/* ✅ FIXED: Changed from 'blood-request-create' to 'request-blood' to match navigation */}
             <Route path="request-blood" element={<HospitalRequestBlood />} />
             
-            <Route path="blood-request-history" element={<HospitalRequestHistory />} />
+            {/* ✅ FIXED: Added missing route for sidebar "Blood Requests" link */}
+            <Route path="blood-requests" element={<HospitalRequestHistory />} />
+            
             <Route path="inventory" element={<HospitalBloodStock />} />
             <Route path="donors" element={<DonorDirectory />} />
           </Route>
