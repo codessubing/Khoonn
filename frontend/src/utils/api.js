@@ -1,12 +1,12 @@
 import axios from "axios";
 
-// ✅ Auto-switch between Render (prod) and localhost (dev)
+// ✅ PRODUCTION FIX: Auto-switch between Render backend and localhost
 const API_BASE_URL = import.meta.env.PROD 
-  ? "https://khoonn-backend.onrender.com" 
-  : "http://localhost:5000";
+  ? "https://khoonn-backend.onrender.com" // 👈 Your live Render backend
+  : "http://localhost:5000";              // 👈 Local development
 
 const api = axios.create({
-  baseURL: `${API_BASE_URL}/api`, // Appends /api automatically
+  baseURL: `${API_BASE_URL}/api`,
   headers: {
     "Content-Type": "application/json",
   },
