@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom"; // ✅ Added for navigation
 import axios from "axios";
 import { toast } from "react-hot-toast";
 import { 
-  CheckCircle, XCircle, Clock, MapPin, Calendar, Loader2 
+  CheckCircle, XCircle, Clock, MapPin, Calendar, Loader2, Plus 
 } from "lucide-react";
 
 // ✅ PRODUCTION FIX: Dynamic API base URL
@@ -11,6 +12,7 @@ const API_BASE_URL = import.meta.env.PROD
   : "http://localhost:5000";
 
 const HospitalRequestHistory = () => {
+  const navigate = useNavigate(); // ✅ Initialize navigate hook
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -93,6 +95,15 @@ const HospitalRequestHistory = () => {
               </p>
             </div>
           </div>
+          
+          {/* ✅ ADDED: Quick action to create new request from history page */}
+          <button 
+            onClick={() => navigate('/hospital/request-blood')}
+            className="btn-advanced flex items-center gap-2"
+          >
+            <Plus size={16} />
+            New Request
+          </button>
         </div>
 
         {/* Stats */}
@@ -141,9 +152,18 @@ const HospitalRequestHistory = () => {
             <div className="text-center py-16">
               <Calendar className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
               <h3 className="text-lg font-semibold text-foreground mb-2">No request history</h3>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-muted-foreground mb-6">
                 Your blood requests will appear here once you make them.
               </p>
+              
+              {/* ✅ UPDATED: Button to navigate to request form when empty */}
+              <button 
+                onClick={() => navigate('/hospital/request-blood')} 
+                className="btn-advanced inline-flex items-center gap-2"
+              >
+                <Plus size={16} />
+                Create First Request
+              </button>
             </div>
           ) : (
             <div className="overflow-x-auto">
