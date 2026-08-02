@@ -1,18 +1,16 @@
 import React, { useState } from "react";
+import { toast } from "react-hot-toast";
 import {
-  Phone,
-  Mail,
-  MapPin,
-  Send,
-  User,
-  MessageSquare,
-  Globe,
-  Instagram,
-  Facebook,
-  Linkedin,
+  Phone, Mail, MapPin, Send, User, MessageSquare,
+  Globe, Instagram, Facebook, Linkedin, Loader2,
 } from "lucide-react";
 import Header from "../Header";
 import Footer from "../Footer";
+
+// ✅ PRODUCTION FIX: Dynamic API base URL
+const API_BASE_URL = import.meta.env.PROD
+  ? "https://khoonn-backend.onrender.com"
+  : "http://localhost:5000";
 
 const Contact = () => {
   const [formData, setFormData] = useState({
@@ -32,13 +30,28 @@ const Contact = () => {
     e.preventDefault();
     setIsSubmitting(true);
 
-    // TODO: Replace with your actual API call (e.g., Formspree, EmailJS, or custom backend)
-    setTimeout(() => {
-      console.log("Form submitted:", formData);
+    try {
+      // ✅ FIXED: Actual API call to Render backend
+      const res = await fetch(`${API_BASE_URL}/api/contact`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        toast.success("Message sent! We'll get back to you soon.");
+        setFormData({ name: "", email: "", phone: "", message: "" });
+      } else {
+        toast.error(data.message || "Failed to send message");
+      }
+    } catch (error) {
+      console.error("Contact form error:", error);
+      toast.error("Network error. Please check your connection.");
+    } finally {
       setIsSubmitting(false);
-      setFormData({ name: "", email: "", phone: "", message: "" });
-      alert("Thank you! Your message has been sent successfully.");
-    }, 1500);
+    }
   };
 
   return (
@@ -235,7 +248,10 @@ const Contact = () => {
                 className="inline-flex w-full items-center justify-center rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground ring-offset-background transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
               >
                 {isSubmitting ? (
-                  "Sending..."
+                  <>
+                    <Loader2 className="mr-2 w-4 h-4 animate-spin" />
+                    Sending...
+                  </>
                 ) : (
                   <>
                     <Send className="mr-2 w-4 h-4" />

@@ -13,6 +13,7 @@ import adminRoutes from "./routes/adminRoutes.js";
 import facilityRoutes from "./routes/facilityRoutes.js";
 import bloodLabRoutes from "./routes/bloodLabRoutes.js";
 import hospitalRoutes from "./routes/hospitalRoutes.js";
+import contactRoutes from "./routes/contactRoutes.js"; // ✅ Already imported
 
 dotenv.config();
 const app = express();
@@ -24,7 +25,7 @@ app.use(cors({
   origin: [
     "http://localhost:5173", 
     "http://localhost:5174",
-    "https://khoonn-sigma.vercel.app" // Your live Vercel frontend
+    "https://khoonn-sigma.vercel.app" 
   ],
   credentials: true,
 }));
@@ -38,6 +39,8 @@ app.use("/api/facility", facilityRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/blood-lab", bloodLabRoutes);
 app.use("/api/hospital", hospitalRoutes);
+// ✅ FIX: Register the contact route here!
+app.use("/api/contact", contactRoutes); 
 
 // 🗄️ DB Connection (WITH IPv4 FIX)
 mongoose
@@ -51,4 +54,4 @@ mongoose
   });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT} 🚀`));
+app.listen(PORT, () => console.log(`Server running on port ${PORT} `));
