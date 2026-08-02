@@ -21,6 +21,11 @@ import {
   Ambulance,
 } from "lucide-react";
 
+// ✅ PRODUCTION FIX: Dynamic API base URL
+const API_BASE_URL = import.meta.env.PROD
+  ? "https://khoonn-backend.onrender.com/api"
+  : "http://localhost:5000/api";
+
 const DashboardLayout = ({ userRole = "donor" }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -98,8 +103,8 @@ const DashboardLayout = ({ userRole = "donor" }) => {
 
       while (attempt < maxRetries) {
         try {
-          const baseURL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
-          const apiUrl = `${baseURL}/auth/profile`;
+          // ✅ FIXED: Uses dynamic API_BASE_URL instead of hardcoded localhost
+          const apiUrl = `${API_BASE_URL}/auth/profile`;
 
           const res = await fetch(apiUrl, {
             headers: { Authorization: `Bearer ${token}` },
