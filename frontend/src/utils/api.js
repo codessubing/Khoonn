@@ -2,7 +2,7 @@ import axios from "axios";
 
 // ✅ Auto-switch between Render (prod) and localhost (dev)
 const API_BASE_URL = import.meta.env.PROD 
-  ? "https://khoonn.onrender.com" 
+  ? "https://khoonn-backend.onrender.com" 
   : "http://localhost:5000";
 
 const api = axios.create({
