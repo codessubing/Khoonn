@@ -1,15 +1,18 @@
-// frontend/src/utils/api.js
 import axios from "axios";
 
-// This automatically prepends http://localhost:5000/api to all requests
+// ✅ Auto-switch between Render (prod) and localhost (dev)
+const API_BASE_URL = import.meta.env.PROD 
+  ? "https://khoonn.onrender.com" 
+  : "http://localhost:5000";
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "http://localhost:5000/api",
+  baseURL: `${API_BASE_URL}/api`, // Appends /api automatically
   headers: {
     "Content-Type": "application/json",
   },
 });
 
-// Automatically attach the JWT token to every request if it exists
+// Attach JWT token to every request
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
   if (token) {
@@ -18,13 +21,13 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Optional: Handle 401 Unauthorized globally (e.g., token expired)
+// Handle expired sessions globally
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
       localStorage.removeItem("token");
-      // window.location.href = "/login"; // Uncomment to auto-redirect to login
+      window.location.href = "/login";
     }
     return Promise.reject(error);
   }
