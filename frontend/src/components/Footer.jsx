@@ -5,25 +5,26 @@ import { Heart, MapPin, Phone, Mail, Facebook, Twitter, Instagram, Linkedin } fr
 const Footer = () => {
   const currentYear = new Date().getFullYear();
 
+  // ✅ UPDATED: Paths now match your actual App.jsx routes
   const quickLinks = [
     { name: "About Us", path: "/about" },
-    { name: "Our Mission", path: "/mission" },
-    { name: "Success Stories", path: "/stories" },
-    { name: "News & Updates", path: "/news" },
+    { name: "Our Mission", path: "/about#mission" },
+    { name: "Blood Camps", path: "/camps" },
+    { name: "Contact Us", path: "/contact" },
   ];
 
   const donorResources = [
     { name: "Become a Donor", path: "/register/donor" },
-    { name: "Eligibility Criteria", path: "/eligibility" },
-    { name: "Donation Process", path: "/process" },
-    { name: "Donor Benefits", path: "/benefits" },
+    { name: "Eligibility Criteria", path: "/donor/eligibility" },
+    { name: "Donation Process", path: "/donor/process" },
+    { name: "Donor Benefits", path: "/donor/benefits" },
   ];
 
   const hospitalResources = [
     { name: "Partner with Us", path: "/register/facility" },
-    { name: "Blood Request", path: "/request-blood" },
-    { name: "Inventory Management", path: "/inventory" },
-    { name: "Emergency Protocol", path: "/emergency" },
+    { name: "Blood Request", path: "/hospital/request-blood" },
+    { name: "Inventory Management", path: "/hospital/inventory" },
+    { name: "Emergency Protocol", path: "/hospital/emergency" },
   ];
 
   const socialLinks = [

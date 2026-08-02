@@ -1,6 +1,8 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { Suspense, lazy } from "react";
 
+const RoleSelection = lazy(() => import("./pages/RoleSelection"));
+
 // --- Public Pages ---
 const LandingPage = lazy(() => import("./pages/Landing"));
 const About = lazy(() => import("./components/about/About"));
@@ -58,6 +60,9 @@ function App() {
           <Route path="/" element={<LandingPage />} />
           <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />
+
+          {/* register Routes */}
+          <Route path="/role-selection" element={<RoleSelection />} />
           
           {/* Auth Routes */}
           <Route path="/login" element={<Login />} />

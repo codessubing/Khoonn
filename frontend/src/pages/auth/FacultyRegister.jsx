@@ -1,8 +1,8 @@
 "use client";
 import { useState } from "react";
 import toast from "react-hot-toast";
-import { useNavigate } from "react-router-dom";
-import { AlertCircle, Eye, EyeOff, Loader2 } from "lucide-react";
+import { useNavigate, Link } from "react-router-dom"; // ✅ Added Link import
+import { AlertCircle, Eye, EyeOff, Loader2, ChevronLeft } from "lucide-react"; // ✅ Added ChevronLeft
 
 // ✅ PRODUCTION FIX: Dynamic API base URL
 const API_BASE_URL = import.meta.env.PROD
@@ -293,8 +293,18 @@ export default function FacilityRegisterForm() {
     <div className="min-h-screen bg-background flex items-center justify-center py-8 px-4">
       <div className="w-full max-w-3xl bg-card border border-border rounded-2xl shadow-sm overflow-hidden">
         {/* Header Section */}
-        <div className="p-6 sm:p-8 border-b border-border bg-muted/30">
-          <h1 className="text-2xl font-bold tracking-tight text-foreground text-center mb-2">
+        <div className="p-6 sm:p-8 border-b border-border bg-muted/30 relative">
+          
+          {/* ✅ PROFESSIONAL BACK BUTTON - Placed absolutely in top-left */}
+          <Link 
+            to="/" 
+            className="absolute left-6 top-6 inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors group z-10"
+          >
+            <ChevronLeft size={16} className="group-hover:-translate-x-0.5 transition-transform" />
+            Back to Home
+          </Link>
+
+          <h1 className="text-2xl font-bold tracking-tight text-foreground text-center mb-2 mt-8 sm:mt-0">
             Blood Facility Registration
           </h1>
           <p className="text-center text-muted-foreground mb-6">
@@ -711,17 +721,22 @@ export default function FacilityRegisterForm() {
             </div>
           )}
 
-          {/* Navigation Buttons */}
+          {/* ✅ UPDATED: Navigation Buttons */}
           <div className={`flex ${step > 1 ? "justify-between" : "justify-end"} pt-6 border-t border-border`}>
-            {step > 1 && (
+            {step > 1 ? (
+              // ✅ Styled Back Button for Multi-step Navigation
               <button
                 type="button"
                 onClick={handleBack}
-                className="btn-ghost"
                 disabled={isSubmitting}
+                className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted disabled:opacity-50"
               >
-                Back
+                <ChevronLeft size={16} />
+                Previous Step
               </button>
+            ) : (
+              // Invisible spacer to maintain centering when no back button exists
+              <div className="w-24"></div>
             )}
 
             {step < 3 ? (

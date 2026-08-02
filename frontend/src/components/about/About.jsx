@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from "react-router-dom"; // ✅ Added Link import
 import { 
   Heart, 
   Users, 
@@ -97,13 +98,15 @@ const AboutUs = () => {
             We are a dedicated platform connecting blood donors with those in need, 
             making blood donation accessible, safe, and impactful.
           </p>
+          
+          {/* ✅ UPDATED: Hero Buttons now use Link */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <button className="btn-advanced">
+            <Link to="/register/donor" className="btn-advanced">
               Join Our Mission
-            </button>
-            <button className="btn-ghost">
+            </Link>
+            <Link to="/role-selection" className="btn-ghost">
               Learn More
-            </button>
+            </Link>
           </div>
         </section>
 
@@ -235,13 +238,21 @@ const AboutUs = () => {
               Join thousands of heroes who are saving lives through blood donation. 
               Your single donation can save up to 3 lives.
             </p>
+            
+            {/* ✅ UPDATED: CTA Buttons now use Link */}
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <button className="bg-background text-foreground px-8 py-3 rounded-[var(--radius)] font-medium hover:bg-background/90 transition-colors">
+              <Link 
+                to="/register/donor" 
+                className="bg-background text-foreground px-8 py-3 rounded-[var(--radius)] font-medium hover:bg-background/90 transition-colors inline-block"
+              >
                 Become a Donor
-              </button>
-              <button className="border border-background/20 text-background px-8 py-3 rounded-[var(--radius)] font-medium hover:bg-background/10 transition-colors">
+              </Link>
+              <Link 
+                to="/register/facility" 
+                className="border border-background/20 text-background px-8 py-3 rounded-[var(--radius)] font-medium hover:bg-background/10 transition-colors inline-block"
+              >
                 Organize a Camp
-              </button>
+              </Link>
             </div>
           </div>
         </section>
