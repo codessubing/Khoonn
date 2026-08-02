@@ -48,8 +48,8 @@ const Contact = () => {
       <main className="flex-1 pt-20">
         {/* HERO SECTION - Minimal & Clean */}
         <section className="py-20 px-6 text-center bg-gradient-to-b from-background to-muted/30">
-          <div className="inline-flex items-center rounded-full border border-border bg-primary/10 px-3 py-1 text-sm font-medium text-primary mb-6">
-            <Mail className="mr-2 h-4 w-4" />
+           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-red-50 border border-red-300 text-black text-sm font-semibold mb-6 shadow-sm hover:shadow-md transition-all duration-400">
+            <Mail className="mr-2 h-4 w-4   text-red-600 animate-pulse" />
             We're here to help
           </div>
           <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-4 text-foreground">

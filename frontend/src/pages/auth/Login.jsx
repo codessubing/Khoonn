@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { AlertCircle, Loader2 } from "lucide-react";
+import { AlertCircle, Loader2, Eye, EyeOff } from "lucide-react";
 import Header from "../../components/Header";
 import Footer from "../../components/Footer";
 
@@ -10,6 +10,7 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const navigate = useNavigate();
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -28,7 +29,8 @@ export default function Login() {
     }
 
     try {
-      const baseURL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+      const baseURL =
+        import.meta.env.VITE_API_URL || "http://localhost:5000/api";
       const apiUrl = `${baseURL}/auth/login`;
 
       console.log("Attempting login at:", apiUrl);
@@ -51,7 +53,9 @@ export default function Login() {
 
       if (!res.ok) {
         if (data.message?.includes("awaiting admin approval")) {
-          setError("Your account is awaiting admin approval. Please wait for confirmation.");
+          setError(
+            "Your account is awaiting admin approval. Please wait for confirmation.",
+          );
           return;
         }
         if (data.message?.includes("rejected")) {
@@ -91,15 +95,15 @@ export default function Login() {
   return (
     <div className="min-h-screen flex flex-col bg-background text-foreground">
       <Header />
-      
-      <main className="flex-1 flex items-center justify-center px-4 py-12">
-        <div className="bg-card border border-border rounded-2xl shadow-sm p-8 w-full max-w-md">
-          <div className="text-center mb-8">
+
+      <main className="flex-1 flex items-center justify-center px-4 py-12 ">
+        <div className="bg-card border  border-red-200 rounded-2xl shadow-[0_10px_30px_rgba(220,38,38,0.15)] p-8 mt-20 w-full max-w-md">
+          <div className="text-center  mb-8">
             <h2 className="text-2xl font-bold tracking-tight text-foreground mb-2">
               Welcome Back
             </h2>
             <p className="text-sm text-muted-foreground">
-              Access your donor, hospital, or lab dashboard
+              Access your donor, hospital or lab dashboard
             </p>
           </div>
 
@@ -131,16 +135,30 @@ export default function Login() {
               <label className="block text-sm font-medium text-foreground mb-1.5">
                 Password
               </label>
-              <input
-                type="password"
-                name="password"
-                placeholder="Enter your password"
-                value={formData.password}
-                onChange={handleChange}
-                required
-                disabled={loading}
-                className="input-minimal disabled:opacity-50 disabled:cursor-not-allowed"
-              />
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  name="password"
+                  placeholder="Enter your password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  required
+                  disabled={loading}
+                  className="input-minimal pr-10 disabled:opacity-50 disabled:cursor-not-allowed"
+                />
+
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  {showPassword ? (
+                    <EyeOff className="w-5 h-5" />
+                  ) : (
+                    <Eye className="w-5 h-5" />
+                  )}
+                </button>
+              </div>
             </div>
 
             <button
@@ -161,7 +179,10 @@ export default function Login() {
 
           <p className="mt-8 text-center text-sm text-muted-foreground">
             Don't have an account?{" "}
-            <a href="/" className="text-primary hover:underline font-medium transition-colors">
+            <a
+              href="/"
+              className="text-primary hover:underline font-medium transition-colors"
+            >
               Register here
             </a>
           </p>

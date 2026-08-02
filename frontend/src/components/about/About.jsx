@@ -1,4 +1,4 @@
-import React from 'react';
+import React from 'react'; 
 import { 
   Heart, 
   Users, 
@@ -18,7 +18,7 @@ import Header from '../Header';
 // ✅ FIXED IMPORT PATHS: Using '../../' to go up to the 'src' folder
 import suhamImage from '../../assets/images/team/suham-pandey.jpg';
 import avinashImage from '../../assets/images/team/avinash-upretri.jpg';
-import shikarImage from '../../assets/images/team/shikar-shahi-thakuree.jpg';
+import shikarImage from '../../assets/images/team/shekhar12.jpeg';
 import bibekImage from '../../assets/images/team/bibek-ghimire.jpg';
 
 const AboutUs = () => {
@@ -85,9 +85,9 @@ const AboutUs = () => {
       
       <main className="flex-1 pt-20">
         {/* Hero Section - Clean & Minimal */}
-        <section className="py-24 px-6 text-center bg-gradient-to-b from-background to-muted/30">
-          <div className="inline-flex items-center rounded-full border border-border bg-primary/10 px-4 py-1.5 text-sm font-medium text-primary mb-6">
-            <Heart className="mr-2 h-4 w-4" />
+        <section className="py-14 px-6 text-center pt-20 pb-50 bg-gradient-to-b from-background to-muted/30">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-red-50 border border-red-300 text-black text-sm font-semibold mb-6 shadow-sm hover:shadow-md transition-all duration-400">
+              <Heart className="w-6 h-6 fill-red-600 text-red-600 animate-pulse" />
             About KyuuKhoonn
           </div>
           <h1 className="text-4xl md:text-6xl font-bold tracking-tight mb-6 text-foreground">
@@ -97,11 +97,11 @@ const AboutUs = () => {
             We are a dedicated platform connecting blood donors with those in need, 
             making blood donation accessible, safe, and impactful.
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <button className="btn-advanced">
+          <div className="flex flex-col sm:flex-row gap-4  justify-center">
+            <button className="btn-advanced  text-base px-8 py-3">
               Join Our Mission
             </button>
-            <button className="btn-ghost">
+            <button className="btn-ghost  text-base px-8 py-3">
               Learn More
             </button>
           </div>

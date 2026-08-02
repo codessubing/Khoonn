@@ -32,25 +32,48 @@ const LandingPage = () => {
     {
       icon: Users,
       title: "Easy Donor Registration",
-      description: "Simple and secure donor registration process with medical history tracking and eligibility verification.",
+      description:
+        "Simple and secure donor registration process with medical history tracking and eligibility verification.",
     },
     {
       icon: Droplets,
       title: "Real-time Inventory Tracking",
-      description: "Monitor blood inventory levels, expiration dates, and distribution in real-time across all partner facilities.",
+      description:
+        "Monitor blood inventory levels, expiration dates, and distribution in real-time across all partner facilities.",
     },
     {
       icon: Zap,
       title: "Quick Response",
-      description: "Emergency request system with automated matching and notification to ensure rapid response in critical situations.",
+      description:
+        "Emergency request system with automated matching and notification to ensure rapid response in critical situations.",
     },
   ];
 
   const processSteps = [
-    { step: "01", icon: FileText, title: "Register & Screen", description: "Complete simple registration and health screening process" },
-    { step: "02", icon: Search, title: "Find Match", description: "Our system matches blood needs with compatible donors" },
-    { step: "03", icon: Bell, title: "Get Notified", description: "Receive instant alerts for urgent needs in your area" },
-    { step: "04", icon: Heart, title: "Donate & Save Lives", description: "Visit approved centers and make your life-saving donation" },
+    {
+      step: "01",
+      icon: FileText,
+      title: "Register & Screen",
+      description: "Complete simple registration and health screening process",
+    },
+    {
+      step: "02",
+      icon: Search,
+      title: "Find Match",
+      description: "Our system matches blood needs with compatible donors",
+    },
+    {
+      step: "03",
+      icon: Bell,
+      title: "Get Notified",
+      description: "Receive instant alerts for urgent needs in your area",
+    },
+    {
+      step: "04",
+      icon: Heart,
+      title: "Donate & Save Lives",
+      description: "Visit approved centers and make your life-saving donation",
+    },
   ];
 
   const bloodTypes = [
@@ -66,25 +89,81 @@ const LandingPage = () => {
 
   const getNeedBadgeClass = (need) => {
     switch (need) {
-      case "Critical": return "bg-destructive/10 text-destructive border-destructive/20";
-      case "High": return "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20";
-      case "Medium": return "bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20";
-      case "Low": return "bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20";
-      default: return "bg-muted text-muted-foreground border-border";
+      case "Critical":
+        return "bg-destructive/10 text-destructive border-destructive/20";
+      case "High":
+        return "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20";
+      case "Medium":
+        return "bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20";
+      case "Low":
+        return "bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20";
+      default:
+        return "bg-muted text-muted-foreground border-border";
     }
   };
 
   const donationFacts = [
-    { icon: Heart, title: "One Donation, Multiple Lives", description: "A single blood donation can save up to 3 lives. Your one hour can give someone a lifetime.", stat: "3 Lives Saved" },
-    { icon: RefreshCw, title: "Blood Regeneration", description: "Your body replaces the blood you donate within 24-48 hours. The red blood cells are completely replaced in 4-6 weeks.", stat: "48 Hours" },
-    { icon: Users, title: "Constant Need", description: "Every 2 seconds, someone needs blood. Your regular donation ensures continuous supply for emergencies.", stat: "Every 2 Seconds" },
-    { icon: AlertTriangle, title: "Short Shelf Life", description: "Red blood cells last only 42 days, platelets just 5 days. Regular donations are essential to maintain supply.", stat: "42 Days Shelf Life" },
+    {
+      icon: Heart,
+      title: "One Donation, Multiple Lives",
+      description:
+        "A single blood donation can save up to 3 lives. Your one hour can give someone a lifetime.",
+      stat: "3 Lives Saved",
+    },
+    {
+      icon: RefreshCw,
+      title: "Blood Regeneration",
+      description:
+        "Your body replaces the blood you donate within 24-48 hours. The red blood cells are completely replaced in 4-6 weeks.",
+      stat: "48 Hours",
+    },
+    {
+      icon: Users,
+      title: "Constant Need",
+      description:
+        "Every 2 seconds, someone needs blood. Your regular donation ensures continuous supply for emergencies.",
+      stat: "Every 2 Seconds",
+    },
+    {
+      icon: AlertTriangle,
+      title: "Short Shelf Life",
+      description:
+        "Red blood cells last only 42 days, platelets just 5 days. Regular donations are essential to maintain supply.",
+      stat: "42 Days Shelf Life",
+    },
   ];
 
   const eligibilityInfo = [
-    { icon: CheckCircle, title: "Who Can Donate", items: ["Age 17-75 (16 with parental consent)", "Weight at least 110 lbs (50 kg)", "Good general health", "No flu or cold symptoms"] },
-    { icon: Stethoscope, title: "Health Benefits", items: ["Free health screening", "Burns 650 calories per donation", "Reduces risk of heart disease", "Stimulates blood cell production"] },
-    { icon: Shield, title: "Safety First", items: ["Sterile, disposable equipment", "Trained medical staff", "Comfortable environment", "Post-donation care"] },
+    {
+      icon: CheckCircle,
+      title: "Who Can Donate",
+      items: [
+        "Age 17-75 (16 with parental consent)",
+        "Weight at least 110 lbs (50 kg)",
+        "Good general health",
+        "No flu or cold symptoms",
+      ],
+    },
+    {
+      icon: Stethoscope,
+      title: "Health Benefits",
+      items: [
+        "Free health screening",
+        "Burns 650 calories per donation",
+        "Reduces risk of heart disease",
+        "Stimulates blood cell production",
+      ],
+    },
+    {
+      icon: Shield,
+      title: "Safety First",
+      items: [
+        "Sterile, disposable equipment",
+        "Trained medical staff",
+        "Comfortable environment",
+        "Post-donation care",
+      ],
+    },
   ];
 
   const emergencyNeeds = [
@@ -101,18 +180,15 @@ const LandingPage = () => {
       {/* Hero Section */}
       <section className="relative overflow-hidden bg-background border-b border-border">
         <div className="container mx-auto px-4 py-24 md:py-32 text-center relative z-10">
-          <div className="max-w-4xl mx-auto">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6 border border-primary/20">
-              <Heart className="w-4 h-4" />
-              Saving Lives Every Day
+          <div className="max-w-4xl mx-auto pt-10">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-red-50 border border-red-300 text-black text-sm font-semibold mb-6 shadow-sm hover:shadow-md transition-all duration-400">
+              <Heart className="w-6 h-6 fill-red-600 text-red-600 animate-pulse" />
+              <span>Saving Lives Every Day</span>
             </div>
 
             <h1 className="text-4xl md:text-6xl font-bold tracking-tight text-foreground mb-6 leading-tight">
-              Connect{" "}
-              <span className="text-primary">
-                Blood Donors
-              </span>{" "}
-              with Those in Need
+              Connect <span className="text-primary">Blood Donors</span> with
+              Those in Need
             </h1>
 
             <p className="text-lg md:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
@@ -121,7 +197,7 @@ const LandingPage = () => {
               lives when every second counts.
             </p>
 
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <div className="flex flex-col  sm:flex-row gap-4 justify-center">
               <Link to="/auth">
                 <button className="btn-advanced text-base px-8 py-3">
                   Get Started <ArrowRight className="w-4 h-4 ml-2" />
@@ -144,7 +220,10 @@ const LandingPage = () => {
             {stats.map((stat, index) => {
               const Icon = stat.icon;
               return (
-                <div key={index} className="text-center p-6 rounded-xl bg-card border border-border hover:shadow-sm transition-all duration-300">
+                <div
+                  key={index}
+                  className="text-center p-6 rounded-xl bg-card border border-border hover:shadow-sm transition-all duration-300"
+                >
                   <div className="w-12 h-12 mx-auto mb-4 rounded-lg bg-primary/10 flex items-center justify-center">
                     <Icon className="w-6 h-6 text-primary" />
                   </div>
@@ -169,17 +248,23 @@ const LandingPage = () => {
               Current Blood Needs
             </h2>
             <p className="text-lg text-muted-foreground">
-              Real-time blood type requirements across our network. Your donation matters now more than ever.
+              Real-time blood type requirements across our network. Your
+              donation matters now more than ever.
             </p>
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto">
             {bloodTypes.map((blood, index) => (
-              <div key={index} className="bg-card border border-border rounded-xl p-5 text-center hover:shadow-sm transition-all duration-300">
+              <div
+                key={index}
+                className="bg-card border border-border rounded-xl p-5 text-center hover:shadow-sm transition-all duration-300"
+              >
                 <div className="text-2xl font-bold tracking-tight text-foreground mb-3">
                   {blood.type}
                 </div>
-                <div className={`text-xs font-semibold px-2.5 py-1 rounded-full border inline-block ${getNeedBadgeClass(blood.need)}`}>
+                <div
+                  className={`text-xs font-semibold px-2.5 py-1 rounded-full border inline-block ${getNeedBadgeClass(blood.need)}`}
+                >
                   {blood.need} Need
                 </div>
                 <div className="text-xs text-muted-foreground mt-3">
@@ -199,7 +284,8 @@ const LandingPage = () => {
               Why Your Blood Donation Matters
             </h2>
             <p className="text-lg text-muted-foreground">
-              Every donation creates a ripple effect of hope and healing in our community.
+              Every donation creates a ripple effect of hope and healing in our
+              community.
             </p>
           </div>
 
@@ -207,7 +293,10 @@ const LandingPage = () => {
             {donationFacts.map((fact, index) => {
               const Icon = fact.icon;
               return (
-                <div key={index} className="bg-card border border-border rounded-xl p-6 text-center hover:shadow-sm transition-all duration-300">
+                <div
+                  key={index}
+                  className="bg-card border border-border rounded-xl p-6 text-center hover:shadow-sm transition-all duration-300"
+                >
                   <div className="w-14 h-14 mx-auto mb-4 rounded-lg bg-primary/10 flex items-center justify-center">
                     <Icon className="w-7 h-7 text-primary" />
                   </div>
@@ -243,7 +332,10 @@ const LandingPage = () => {
             {emergencyNeeds.map((need, index) => {
               const Icon = need.icon;
               return (
-                <div key={index} className="bg-card border border-border rounded-xl p-6 text-center hover:shadow-sm transition-all duration-300">
+                <div
+                  key={index}
+                  className="bg-card border border-border rounded-xl p-6 text-center hover:shadow-sm transition-all duration-300"
+                >
                   <div className="w-12 h-12 mx-auto mb-4 rounded-lg bg-destructive/10 flex items-center justify-center">
                     <Icon className="w-6 h-6 text-destructive" />
                   </div>
@@ -259,7 +351,8 @@ const LandingPage = () => {
           <div className="text-center mt-12">
             <div className="bg-muted/50 border border-border rounded-xl p-6 max-w-2xl mx-auto">
               <p className="text-lg text-foreground mb-2">
-                <strong>47% of the population</strong> is eligible to donate blood, but only <strong>5%</strong> actually do.
+                <strong>47% of the population</strong> is eligible to donate
+                blood, but only <strong>5%</strong> actually do.
               </p>
               <p className="text-muted-foreground">
                 Your single donation can make all the difference.
@@ -277,7 +370,8 @@ const LandingPage = () => {
               How It Works
             </h2>
             <p className="text-lg text-muted-foreground">
-              Simple steps to become a life-saver. Join thousands of donors making a difference.
+              Simple steps to become a life-saver. Join thousands of donors
+              making a difference.
             </p>
           </div>
 
@@ -298,7 +392,9 @@ const LandingPage = () => {
                     <h3 className="text-lg font-semibold mb-3 text-foreground">
                       {step.title}
                     </h3>
-                    <p className="text-muted-foreground text-sm">{step.description}</p>
+                    <p className="text-muted-foreground text-sm">
+                      {step.description}
+                    </p>
                   </div>
                 </div>
               );
@@ -315,7 +411,8 @@ const LandingPage = () => {
               Donor Eligibility & Benefits
             </h2>
             <p className="text-lg text-muted-foreground">
-              Safe, simple, and rewarding - discover the benefits of blood donation
+              Safe, simple, and rewarding - discover the benefits of blood
+              donation
             </p>
           </div>
 
@@ -323,7 +420,10 @@ const LandingPage = () => {
             {eligibilityInfo.map((info, index) => {
               const Icon = info.icon;
               return (
-                <div key={index} className="bg-card border border-border rounded-xl p-6 hover:shadow-sm transition-all duration-300">
+                <div
+                  key={index}
+                  className="bg-card border border-border rounded-xl p-6 hover:shadow-sm transition-all duration-300"
+                >
                   <div className="w-12 h-12 mx-auto mb-4 rounded-lg bg-primary/10 flex items-center justify-center">
                     <Icon className="w-6 h-6 text-primary" />
                   </div>
@@ -332,7 +432,10 @@ const LandingPage = () => {
                   </h3>
                   <ul className="space-y-3">
                     {info.items.map((item, itemIndex) => (
-                      <li key={itemIndex} className="flex items-start gap-3 text-muted-foreground">
+                      <li
+                        key={itemIndex}
+                        className="flex items-start gap-3 text-muted-foreground"
+                      >
                         <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
                         <span>{item}</span>
                       </li>
@@ -353,7 +456,9 @@ const LandingPage = () => {
               Why Choose Our Blood Bank System?
             </h2>
             <p className="text-lg text-muted-foreground">
-              We provide a comprehensive platform that connects donors, hospitals, and blood banks to ensure efficient blood collection and distribution.
+              We provide a comprehensive platform that connects donors,
+              hospitals, and blood banks to ensure efficient blood collection
+              and distribution.
             </p>
           </div>
 
@@ -361,7 +466,10 @@ const LandingPage = () => {
             {features.map((feature, index) => {
               const Icon = feature.icon;
               return (
-                <div key={index} className="bg-card border border-border rounded-xl p-6 text-center hover:shadow-sm transition-all duration-300">
+                <div
+                  key={index}
+                  className="bg-card border border-border rounded-xl p-6 text-center hover:shadow-sm transition-all duration-300"
+                >
                   <div className="w-14 h-14 mx-auto mb-4 rounded-lg bg-primary/10 flex items-center justify-center">
                     <Icon className="w-7 h-7 text-primary" />
                   </div>
@@ -388,7 +496,9 @@ const LandingPage = () => {
                 Secure & Compliant
               </h2>
               <p className="text-muted-foreground mb-6">
-                Our system meets all healthcare data security standards with end-to-end encryption and strict compliance with medical regulations to protect donor and patient information.
+                Our system meets all healthcare data security standards with
+                end-to-end encryption and strict compliance with medical
+                regulations to protect donor and patient information.
               </p>
               <ul className="space-y-3">
                 <li className="flex items-center text-muted-foreground">
@@ -427,7 +537,9 @@ const LandingPage = () => {
               Ready to Save Lives?
             </h2>
             <p className="text-lg opacity-90 mb-8 max-w-2xl mx-auto">
-              Join our community of donors and healthcare professionals working together to ensure blood is available when and where it's needed most.
+              Join our community of donors and healthcare professionals working
+              together to ensure blood is available when and where it's needed
+              most.
             </p>
             <Link to="/auth">
               <button className="inline-flex items-center justify-center px-8 py-3 text-lg font-medium rounded-lg bg-background text-primary hover:bg-muted transition-all duration-300 shadow-lg">
@@ -437,7 +549,7 @@ const LandingPage = () => {
           </div>
         </div>
       </section>
-      
+
       <Footer />
     </div>
   );
