@@ -4,6 +4,11 @@ import axios from "axios";
 import { toast } from "react-hot-toast";
 import { User, Mail, Lock, Shield, Loader2, AlertCircle } from "lucide-react";
 
+// ✅ PRODUCTION FIX: Dynamic API base URL
+const API_BASE_URL = import.meta.env.PROD
+  ? "https://khoonn-backend.onrender.com"
+  : "http://localhost:5000";
+
 export default function Signup() {
   const [formData, setFormData] = useState({
     name: "",
@@ -26,14 +31,17 @@ export default function Signup() {
     setError("");
 
     try {
-      // ✅ FIX: Removed 'const res =' since we don't need to read the response data
-      await axios.post("/api/auth/register", formData);
+      // ✅ FIXED: Uses absolute URL pointing to Render backend
+      await axios.post(`${API_BASE_URL}/api/auth/register`, formData);
       
       toast.success("✅ Account created successfully!");
       navigate("/login", { replace: true });
     } catch (err) {
       console.error("Registration error:", err);
-      const errorMessage = err.response?.data?.error || err.response?.data?.message || "Registration failed. Please try again.";
+      const errorMessage = 
+        err.response?.data?.error || 
+        err.response?.data?.message || 
+        "Registration failed. Please try again.";
       setError(errorMessage);
     } finally {
       setLoading(false);

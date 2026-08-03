@@ -1,22 +1,15 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Users,
-  Hospital,
-  Droplet,
-  Calendar,
-  Heart,
-  TrendingUp,
-  Activity,
-  Shield,
-  Beaker,
-  ArrowRight,
-  RefreshCw,
-  AlertTriangle,
-  CheckCircle,
-  Clock,
+  Users, Hospital, Droplet, Calendar, Heart, TrendingUp, Activity,
+  Shield, Beaker, ArrowRight, RefreshCw, AlertTriangle, CheckCircle, Clock,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
+
+// ✅ PRODUCTION FIX: Dynamic API base URL
+const API_BASE_URL = import.meta.env.PROD
+  ? "https://khoonn-backend.onrender.com"
+  : "http://localhost:5000";
 
 const AdminDashboard = () => {
   const [stats, setStats] = useState(null);
@@ -34,15 +27,24 @@ const AdminDashboard = () => {
         return;
       }
 
-      const res = await fetch("/api/admin/dashboard", {
-        headers: { 
+      // ✅ FIXED: Uses absolute URL pointing to Render backend
+      const res = await fetch(`${API_BASE_URL}/api/admin/dashboard`, {
+        headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
       });
 
+      // ✅ ENHANCED: Handle auth failures explicitly
+      if (res.status === 401 || res.status === 403) {
+        localStorage.removeItem("token");
+        toast.error("Session expired. Please login again.");
+        navigate("/login");
+        return;
+      }
+
       if (!res.ok) {
-        throw new Error("Failed to fetch stats");
+        throw new Error(`Failed to fetch stats (${res.status})`);
       }
 
       const data = await res.json();
@@ -88,9 +90,10 @@ const AdminDashboard = () => {
           </p>
           <button
             onClick={() => fetchStats(true)}
+            disabled={refreshing}
             className="btn-advanced w-full justify-center"
           >
-            Retry Loading
+            {refreshing ? "Retrying..." : "Retry Loading"}
           </button>
         </div>
       </div>
@@ -105,7 +108,7 @@ const AdminDashboard = () => {
       purple: { bg: "bg-purple-500/10", text: "text-purple-600 dark:text-purple-400" },
       amber: { bg: "bg-amber-500/10", text: "text-amber-600 dark:text-amber-400" },
     };
-    
+
     const colors = colorMap[color] || colorMap.primary;
 
     return (
@@ -235,41 +238,11 @@ const AdminDashboard = () => {
 
         {/* Main Stats Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-          <StatCard
-            icon={<Users className="w-5 h-5" />}
-            label="Total Donors"
-            value={stats.totalDonors}
-            subtitle="Registered blood donors"
-            color="primary"
-          />
-          <StatCard
-            icon={<Hospital className="w-5 h-5" />}
-            label="Facilities"
-            value={stats.totalFacilities}
-            subtitle="Hospitals & Labs"
-            color="blue"
-          />
-          <StatCard
-            icon={<Droplet className="w-5 h-5" />}
-            label="Total Donations"
-            value={stats.totalDonations}
-            subtitle="Blood units collected"
-            color="green"
-          />
-          <StatCard
-            icon={<Calendar className="w-5 h-5" />}
-            label="Upcoming Camps"
-            value={stats.upcomingCamps}
-            subtitle="Scheduled blood drives"
-            color="purple"
-          />
-          <StatCard
-            icon={<Heart className="w-5 h-5" />}
-            label="Active Donors"
-            value={stats.activeDonors}
-            subtitle="Recently donated"
-            color="amber"
-          />
+          <StatCard icon={<Users className="w-5 h-5" />} label="Total Donors" value={stats.totalDonors} subtitle="Registered blood donors" color="primary" />
+          <StatCard icon={<Hospital className="w-5 h-5" />} label="Facilities" value={stats.totalFacilities} subtitle="Hospitals & Labs" color="blue" />
+          <StatCard icon={<Droplet className="w-5 h-5" />} label="Total Donations" value={stats.totalDonations} subtitle="Blood units collected" color="green" />
+          <StatCard icon={<Calendar className="w-5 h-5" />} label="Upcoming Camps" value={stats.upcomingCamps} subtitle="Scheduled blood drives" color="purple" />
+          <StatCard icon={<Heart className="w-5 h-5" />} label="Active Donors" value={stats.activeDonors} subtitle="Recently donated" color="amber" />
         </div>
 
         {/* System Alerts Section */}
@@ -280,31 +253,13 @@ const AdminDashboard = () => {
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {stats.pendingApprovals > 0 && (
-              <AlertCard
-                type="warning"
-                title="Pending Approvals"
-                description="facility registration(s) awaiting review"
-                count={stats.pendingApprovals}
-                icon={<Clock className="w-5 h-5" />}
-              />
+              <AlertCard type="warning" title="Pending Approvals" description="facility registration(s) awaiting review" count={stats.pendingApprovals} icon={<Clock className="w-5 h-5" />} />
             )}
             {stats.criticalStock > 0 && (
-              <AlertCard
-                type="critical"
-                title="Critical Stock Alert"
-                description="blood type(s) with low inventory"
-                count={stats.criticalStock}
-                icon={<Droplet className="w-5 h-5" />}
-              />
+              <AlertCard type="critical" title="Critical Stock Alert" description="blood type(s) with low inventory" count={stats.criticalStock} icon={<Droplet className="w-5 h-5" />} />
             )}
             {stats.pendingFacilities > 0 && (
-              <AlertCard
-                type="info"
-                title="Facility Applications"
-                description="new facility application(s) pending"
-                count={stats.pendingFacilities}
-                icon={<Hospital className="w-5 h-5" />}
-              />
+              <AlertCard type="info" title="Facility Applications" description="new facility application(s) pending" count={stats.pendingFacilities} icon={<Hospital className="w-5 h-5" />} />
             )}
             {stats.pendingApprovals === 0 && stats.criticalStock === 0 && stats.pendingFacilities === 0 && (
               <div className="col-span-full bg-muted/50 border border-border rounded-xl p-6 text-center">
@@ -323,31 +278,10 @@ const AdminDashboard = () => {
             Quick Actions
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <QuickActionCard
-              icon={<Users className="w-5 h-5" />}
-              title="Manage Donors"
-              description="View, edit, or remove donors from the blood bank system"
-              href="/admin/donors"
-            />
-            <QuickActionCard
-              icon={<Hospital className="w-5 h-5" />}
-              title="Manage Facilities"
-              description="Approve, edit, or manage hospitals and blood laboratories"
-              href="/admin/facilities"
-            />
-            <QuickActionCard
-              icon={<Droplet className="w-5 h-5" />}
-              title="Donation History"
-              description="View all donation records, analytics, and reports"
-              href="/admin/donations"
-            />
-            <QuickActionCard
-              icon={<Calendar className="w-5 h-5" />}
-              title="Blood Camps"
-              description="Monitor and manage upcoming blood donation camps"
-              href="/admin/camps"
-              buttonText="View Camps"
-            />
+            <QuickActionCard icon={<Users className="w-5 h-5" />} title="Manage Donors" description="View, edit, or remove donors from the blood bank system" href="/admin/donors" />
+            <QuickActionCard icon={<Hospital className="w-5 h-5" />} title="Manage Facilities" description="Approve, edit, or manage hospitals and blood laboratories" href="/admin/facilities" />
+            <QuickActionCard icon={<Droplet className="w-5 h-5" />} title="Donation History" description="View all donation records, analytics, and reports" href="/admin/donations" />
+            <QuickActionCard icon={<Calendar className="w-5 h-5" />} title="Blood Camps" description="Monitor and manage upcoming blood donation camps" href="/admin/camps" buttonText="View Camps" />
           </div>
         </div>
 
@@ -360,17 +294,12 @@ const AdminDashboard = () => {
             </h2>
             <div className="space-y-1">
               {stats.recentActivity.slice(0, 5).map((activity, index) => (
-                <div
-                  key={index}
-                  className="flex items-center justify-between py-3 px-3 rounded-lg hover:bg-muted transition-colors group"
-                >
+                <div key={index} className="flex items-center justify-between py-3 px-3 rounded-lg hover:bg-muted transition-colors group">
                   <div className="flex items-center gap-3">
                     <div className="p-2 rounded-lg bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
                       <Activity className="w-4 h-4" />
                     </div>
-                    <span className="text-sm text-foreground font-medium">
-                      {activity.description}
-                    </span>
+                    <span className="text-sm text-foreground font-medium">{activity.description}</span>
                   </div>
                   <span className="text-xs text-muted-foreground whitespace-nowrap">
                     {new Date(activity.timestamp).toLocaleDateString()}

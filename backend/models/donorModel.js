@@ -36,7 +36,7 @@ const donorSchema = new mongoose.Schema(
       enum: ["donor"],
     },
 
-    // 📍 Location
+    // 📍 Location & Address
     address: {
       street: { type: String, required: [true, "Street address is required"], trim: true },
       city: { type: String, required: [true, "City is required"], trim: true },
@@ -44,11 +44,23 @@ const donorSchema = new mongoose.Schema(
       pincode: {
         type: String,
         required: [true, "Pincode is required"],
-        // ✅ FIXED: Updated to 5-digit regex for Nepal postal codes (e.g., 32900)
         match: [/^[0-9]{5}$/, "Please enter a valid 5-digit postal code"],
         trim: true,
       },
     },
+
+    // ✅ FIXED: Geospatial location for emergency matching
+    // ❌ REMOVED defaults to prevent incomplete GeoJSON objects from breaking the 2dsphere index
+    location: {
+      type: { 
+        type: String, 
+        enum: ["Point"]
+      },
+      coordinates: { 
+        type: [Number]
+      },
+    },
+    lastLocationUpdate: { type: Date, default: Date.now },
 
     // 🩸 Medical / Blood Info
     bloodGroup: {
@@ -74,7 +86,6 @@ const donorSchema = new mongoose.Schema(
       required: [true, "Gender is required"],
     },
     
-    // ✅ ADDED: Matches the nested object sent from frontend/controller
     healthInfo: {
       weight: { 
         type: Number, 
@@ -87,7 +98,6 @@ const donorSchema = new mongoose.Schema(
 
     lastDonationDate: { type: Date },
 
-    // Manual/medical override, separate from the 90-day cooldown virtual
     eligibleToDonate: { type: Boolean, default: true },
 
     // 📜 Donation History
@@ -105,7 +115,6 @@ const donorSchema = new mongoose.Schema(
       },
     ],
 
-    // ✅ ADDED: Matches the array pushed to in hospitalController.js
     contactHistory: [
       {
         contactedBy: { type: mongoose.Schema.Types.ObjectId, ref: "Facility" },
@@ -122,11 +131,22 @@ const donorSchema = new mongoose.Schema(
   },
   { 
     timestamps: true,
-    // ✅ CRITICAL: Expose virtuals (like isEligible) in JSON responses
     toJSON: { virtuals: true },
     toObject: { virtuals: true }
   }
 );
+
+// 🧹 Safety Hook: Prevent saving incomplete GeoJSON objects via .save()
+donorSchema.pre("save", function (next) {
+  if (this.location && this.location.type === "Point") {
+    // If coordinates are missing or don't have exactly 2 numbers, delete the location
+    if (!this.location.coordinates || this.location.coordinates.length !== 2) {
+      this.location = undefined;
+      this.lastLocationUpdate = undefined;
+    }
+  }
+  next();
+});
 
 // 🔐 Pre-save hook: Hash password before saving if it's new or modified
 donorSchema.pre("save", async function (next) {
@@ -163,6 +183,9 @@ donorSchema.virtual("isEligible").get(function () {
 donorSchema.index({ email: 1 });
 donorSchema.index({ phone: 1 });
 donorSchema.index({ bloodGroup: 1, lastDonationDate: 1 }); // Speeds up donor search
+
+// ✅ NEW: 2dsphere index for geospatial radius queries
+donorSchema.index({ location: "2dsphere" });
 
 const Donor = mongoose.model("Donor", donorSchema);
 export default Donor;

@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { toast } from "react-hot-toast";
 import {
   Phone,
   Mail,
@@ -10,9 +11,15 @@ import {
   Instagram,
   Facebook,
   Linkedin,
+  Loader2,
 } from "lucide-react";
 import Header from "../Header";
 import Footer from "../Footer";
+
+// ✅ PRODUCTION FIX: Dynamic API base URL
+const API_BASE_URL = import.meta.env.PROD
+  ? "https://khoonn-backend.onrender.com"
+  : "http://localhost:5000";
 
 const Contact = () => {
   const [formData, setFormData] = useState({
@@ -28,23 +35,38 @@ const Contact = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  // ✅ FIXED: Real API call instead of setTimeout mock
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
 
-    // TODO: Replace with your actual API call (e.g., Formspree, EmailJS, or custom backend)
-    setTimeout(() => {
-      console.log("Form submitted:", formData);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/contact`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        toast.success("Message sent! We'll get back to you soon.");
+        setFormData({ name: "", email: "", phone: "", message: "" });
+      } else {
+        toast.error(data.message || "Failed to send message");
+      }
+    } catch (error) {
+      console.error("Contact form error:", error);
+      toast.error("Network error. Please check your connection.");
+    } finally {
       setIsSubmitting(false);
-      setFormData({ name: "", email: "", phone: "", message: "" });
-      alert("Thank you! Your message has been sent successfully.");
-    }, 1500);
+    }
   };
 
   return (
     <div className="min-h-screen flex flex-col bg-background text-foreground">
       <Header />
-      
+
       <main className="flex-1 pt-20">
         {/* HERO SECTION - Minimal & Clean */}
         <section className="py-20 px-6 text-center bg-gradient-to-b from-background to-muted/30">
@@ -56,7 +78,7 @@ const Contact = () => {
             Get in Touch
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-            Reach out to us for any help, queries, or blood-related assistance. 
+            Reach out to us for any help, queries, or blood-related assistance.
             Our team is available 24/7 to support you.
           </p>
         </section>
@@ -99,13 +121,12 @@ const Contact = () => {
         {/* CONTACT FORM & INFO - Spacious & Accessible */}
         <section className="py-16 px-6 bg-muted/30">
           <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-16">
-            
             {/* Left Content */}
             <div className="space-y-8">
               <div>
                 <h2 className="text-3xl font-bold tracking-tight mb-4">Send Us a Message</h2>
                 <p className="text-muted-foreground leading-relaxed">
-                  Have any questions? We're always here to help you with blood donation, 
+                  Have any questions? We're always here to help you with blood donation,
                   camp organization, or support queries.
                 </p>
               </div>
@@ -162,7 +183,7 @@ const Contact = () => {
                 <label htmlFor="name" className="text-sm font-medium text-foreground">Full Name</label>
                 <div className="relative">
                   <User className="absolute left-3 top-3 w-5 h-5 text-muted-foreground" />
-                  <input  
+                  <input
                     id="name"
                     name="name"
                     type="text"
@@ -180,7 +201,7 @@ const Contact = () => {
                 <label htmlFor="email" className="text-sm font-medium text-foreground">Email Address</label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-3 w-5 h-5 text-muted-foreground" />
-                  <input  
+                  <input
                     id="email"
                     name="email"
                     type="email"
@@ -198,7 +219,7 @@ const Contact = () => {
                 <label htmlFor="phone" className="text-sm font-medium text-foreground">Phone Number</label>
                 <div className="relative">
                   <Phone className="absolute left-3 top-3 w-5 h-5 text-muted-foreground" />
-                  <input  
+                  <input
                     id="phone"
                     name="phone"
                     type="tel"
@@ -228,14 +249,17 @@ const Contact = () => {
                 </div>
               </div>
 
-              {/* Submit */}
+              {/* Submit Button */}
               <button
                 type="submit"
                 disabled={isSubmitting}
                 className="inline-flex w-full items-center justify-center rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground ring-offset-background transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
               >
                 {isSubmitting ? (
-                  "Sending..."
+                  <>
+                    <Loader2 className="mr-2 w-4 h-4 animate-spin" />
+                    Sending...
+                  </>
                 ) : (
                   <>
                     <Send className="mr-2 w-4 h-4" />

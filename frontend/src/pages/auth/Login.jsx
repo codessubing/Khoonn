@@ -1,20 +1,26 @@
 "use client";
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom"; // ✅ Added Link import
 import { AlertCircle, Loader2, Eye, EyeOff } from "lucide-react";
 import Header from "../../components/Header";
 import Footer from "../../components/Footer";
+
+// ✅ PRODUCTION FIX: Dynamic API base URL
+const API_BASE_URL = import.meta.env.PROD
+  ? "https://khoonn-backend.onrender.com"
+  : "http://localhost:5000";
 
 export default function Login() {
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
+  const navigate = useNavigate();
+ 
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
-    if (error) setError(""); // clear error on typing
+    if (error) setError("");
   };
 
   const handleSubmit = async (e) => {
@@ -29,9 +35,7 @@ export default function Login() {
     }
 
     try {
-      const baseURL =
-        import.meta.env.VITE_API_URL || "http://localhost:5000/api";
-      const apiUrl = `${baseURL}/auth/login`;
+      const apiUrl = `${API_BASE_URL}/api/auth/login`;
 
       console.log("Attempting login at:", apiUrl);
 
@@ -146,16 +150,17 @@ export default function Login() {
                   disabled={loading}
                   className="input-minimal pr-10 disabled:opacity-50 disabled:cursor-not-allowed"
                 />
-
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-1 focus:outline-none"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  disabled={loading}
                 >
                   {showPassword ? (
-                    <EyeOff className="w-5 h-5" />
+                    <EyeOff className="w-4 h-4" />
                   ) : (
-                    <Eye className="w-5 h-5" />
+                    <Eye className="w-4 h-4" />
                   )}
                 </button>
               </div>
@@ -177,14 +182,15 @@ export default function Login() {
             </button>
           </form>
 
+          {/* ✅ FIXED: Changed <a> to <Link> pointing to role selection */}
           <p className="mt-8 text-center text-sm text-muted-foreground">
             Don't have an account?{" "}
-            <a
-              href="/"
+            <Link 
+              to="/role-selection" 
               className="text-primary hover:underline font-medium transition-colors"
             >
               Register here
-            </a>
+            </Link>
           </p>
         </div>
       </main>

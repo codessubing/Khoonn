@@ -1,8 +1,16 @@
 "use client";
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { toast } from "react-hot-toast";
-import { AlertCircle, Eye, EyeOff, Loader2 } from "lucide-react";
+import { 
+  AlertCircle, Eye, EyeOff, Loader2, ChevronLeft, MapPin, 
+  Navigation, CheckCircle2 
+} from "lucide-react";
+
+// ✅ PRODUCTION FIX: Dynamic API base URL
+const API_BASE_URL = import.meta.env.PROD
+  ? "https://khoonn-backend.onrender.com"
+  : "http://localhost:5000";
 
 // Constants for better maintainability
 const GENDERS = ["Male", "Female", "Other"];
@@ -105,12 +113,22 @@ export default function DonorRegisterForm() {
       state: "",
       pincode: "",
     },
+    // ✅ NEW: Geolocation fields for emergency matching
+    location: {
+      lat: null,
+      lng: null,
+      consentGiven: false,
+    },
   });
 
   const [errors, setErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [touched, setTouched] = useState({});
+  
+  // ✅ NEW: Local UI states for geolocation
+  const [isGettingLocation, setIsGettingLocation] = useState(false);
+  const [locationError, setLocationError] = useState("");
 
   const getInputClass = (fieldName) => {
     const hasError = touched[fieldName] && errors[fieldName];
@@ -140,6 +158,12 @@ export default function DonorRegisterForm() {
           ...prev,
           address: { ...prev.address, [field]: value },
         };
+      } else if (name.startsWith("location.")) {
+        const field = name.split(".")[1];
+        return {
+          ...prev,
+          location: { ...prev.location, [field]: type === "checkbox" ? checked : value },
+        };
       }
       return { ...prev, [name]: type === "checkbox" ? checked : value };
     });
@@ -165,7 +189,10 @@ export default function DonorRegisterForm() {
     let value;
     if (fieldName.includes(".")) {
       const [parent, child] = fieldName.split(".");
-      value = parent === "healthInfo" ? formData.healthInfo[child] : formData.address[child];
+      if (parent === "healthInfo") value = formData.healthInfo[child];
+      else if (parent === "address") value = formData.address[child];
+      else if (parent === "location") value = formData.location[child];
+      else value = formData[fieldName];
     } else {
       value = formData[fieldName];
     }
@@ -191,7 +218,9 @@ export default function DonorRegisterForm() {
       let value;
       if (field.includes(".")) {
         const [parent, child] = field.split(".");
-        value = parent === "healthInfo" ? formData.healthInfo[child] : formData.address[child];
+        if (parent === "healthInfo") value = formData.healthInfo[child];
+        else if (parent === "address") value = formData.address[child];
+        else value = formData[field];
       } else {
         value = formData[field];
       }
@@ -228,6 +257,43 @@ export default function DonorRegisterForm() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
+  // ✅ NEW: Capture browser geolocation
+  const handleCaptureLocation = () => {
+    if (!navigator.geolocation) {
+      setLocationError("Geolocation is not supported by your browser");
+      return;
+    }
+
+    setIsGettingLocation(true);
+    setLocationError("");
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        setFormData((prev) => ({
+          ...prev,
+          location: {
+            ...prev.location,
+            lat: latitude,
+            lng: longitude,
+            consentGiven: true,
+          },
+        }));
+        setIsGettingLocation(false);
+        toast.success("📍 Location captured successfully!");
+      },
+      (err) => {
+        let msg = "Unable to get your location";
+        if (err.code === 1) msg = "Location permission denied. Please enable it in browser settings.";
+        else if (err.code === 2) msg = "Location unavailable. Try again later.";
+        else if (err.code === 3) msg = "Location request timed out.";
+        setLocationError(msg);
+        setIsGettingLocation(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 }
+    );
+  };
+
   const handleSubmit = async (e) => {
     if (e && typeof e.preventDefault === "function") e.preventDefault();
 
@@ -235,32 +301,38 @@ export default function DonorRegisterForm() {
 
     setIsSubmitting(true);
 
-    // ✅ FIX: Construct payload to EXACTLY match your Mongoose schema
+    // ✅ UPDATED: Include GeoJSON location in payload
     const submissionPayload = {
-      fullName: formData.fullName,       // Schema expects 'fullName'
+      fullName: formData.fullName,
       email: formData.email,
       password: formData.password,
       phone: formData.phone,
       role: "donor",
-      bloodGroup: formData.bloodGroup,   // Schema expects 'bloodGroup'
-      age: calculateAge(formData.dob),   // Calculate age from DOB
-      gender: formData.gender,           // Schema expects 'gender'
+      bloodGroup: formData.bloodGroup,
+      age: calculateAge(formData.dob),
+      gender: formData.gender,
       healthInfo: {
         weight: parseFloat(formData.healthInfo.weight) || 0,
         height: parseFloat(formData.healthInfo.height) || 0,
         hasDiseases: formData.healthInfo.hasDiseases,
         diseaseDetails: formData.healthInfo.diseaseDetails || ""
       },
-      address: {                         // Schema expects nested address object
+      address: {
         street: formData.address.street,
         city: formData.address.city,
         state: formData.address.state,
         pincode: formData.address.pincode
-      }
+      },
+      // ✅ NEW: GeoJSON format for MongoDB 2dsphere index
+      location: formData.location.consentGiven && formData.location.lat
+        ? {
+            type: "Point",
+            coordinates: [formData.location.lng, formData.location.lat], // ⚠️ GeoJSON uses [lng, lat]
+          }
+        : null,
     };
 
-    const baseURL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
-    const API_URL = `${baseURL}/auth/register`;
+    const API_URL = `${API_BASE_URL}/api/auth/register`;
 
     console.log("Submitting Donor Payload:", submissionPayload);
 
@@ -294,8 +366,17 @@ export default function DonorRegisterForm() {
     <div className="min-h-screen bg-background flex items-center justify-center py-8 px-4">
       <div className="w-full max-w-3xl bg-card border border-border rounded-2xl shadow-sm overflow-hidden">
         {/* Header Section */}
-        <div className="p-6 sm:p-8 border-b border-border bg-muted/30">
-          <h1 className="text-2xl font-bold tracking-tight text-foreground text-center mb-2">
+        <div className="p-6 sm:p-8 border-b border-border bg-muted/30 relative">
+          
+          <Link 
+            to="/" 
+            className="absolute left-6 top-6 inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors group z-10"
+          >
+            <ChevronLeft size={16} className="group-hover:-translate-x-0.5 transition-transform" />
+            Back to Home
+          </Link>
+
+          <h1 className="text-2xl font-bold tracking-tight text-foreground text-center mb-2 mt-8 sm:mt-0">
             Blood Donor Registration
           </h1>
           <p className="text-center text-muted-foreground mb-6">
@@ -316,7 +397,7 @@ export default function DonorRegisterForm() {
           <div className="flex justify-between text-xs font-medium text-muted-foreground">
             <span className={step >= 1 ? "text-primary font-semibold" : ""}>Personal Info</span>
             <span className={step >= 2 ? "text-primary font-semibold" : ""}>Health Details</span>
-            <span className={step >= 3 ? "text-primary font-semibold" : ""}>Address</span>
+            <span className={step >= 3 ? "text-primary font-semibold" : ""}>Address & Location</span>
           </div>
         </div>
 
@@ -609,9 +690,57 @@ export default function DonorRegisterForm() {
             </div>
           )}
 
-          {/* Step 3: Address Information (Nepal Specific) */}
+          {/* Step 3: Address Information + Geolocation */}
           {step === 3 && (
             <div className="space-y-5">
+              
+              {/* ✅ NEW: Geolocation Capture Section */}
+              <div className="bg-primary/5 border border-primary/20 rounded-xl p-5 space-y-4">
+                <div className="flex items-start gap-3">
+                  <Navigation className="w-5 h-5 text-primary mt-0.5 shrink-0" />
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-foreground text-sm mb-1">Enable Emergency Location Matching</h3>
+                    <p className="text-xs text-muted-foreground mb-3">
+                      Allow us to access your current GPS location so hospitals can find you quickly during emergencies. 
+                      Your exact coordinates are encrypted and only used for life-saving requests within 5km radius.
+                    </p>
+                    
+                    {!formData.location.consentGiven ? (
+                      <button
+                        type="button"
+                        onClick={handleCaptureLocation}
+                        disabled={isGettingLocation}
+                        className="btn-advanced w-full sm:w-auto justify-center gap-2 text-sm"
+                      >
+                        {isGettingLocation ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            Getting Location...
+                          </>
+                        ) : (
+                          <>
+                            <MapPin className="w-4 h-4" />
+                            Use My Current Location
+                          </>
+                        )}
+                      </button>
+                    ) : (
+                      <div className="flex items-center gap-2 text-green-600 dark:text-green-400 text-sm font-medium">
+                        <CheckCircle2 className="w-4 h-4" />
+                        Location captured: {formData.location.lat?.toFixed(4)}, {formData.location.lng?.toFixed(4)}
+                      </div>
+                    )}
+                    
+                    {locationError && (
+                      <p className="text-destructive text-xs mt-2 flex items-center gap-1.5">
+                        <AlertCircle size={14} /> {locationError}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Manual Address Fields (Fallback) */}
               <div>
                 <label htmlFor="street" className="block text-sm font-medium text-foreground mb-1.5">
                   Street Address / Tole <span className="text-destructive">*</span>
@@ -721,15 +850,18 @@ export default function DonorRegisterForm() {
 
           {/* Navigation Buttons */}
           <div className={`flex ${step > 1 ? "justify-between" : "justify-end"} pt-6 border-t border-border`}>
-            {step > 1 && (
+            {step > 1 ? (
               <button
                 type="button"
                 onClick={handleBack}
-                className="btn-ghost"
                 disabled={isSubmitting}
+                className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted disabled:opacity-50"
               >
-                Back
+                <ChevronLeft size={16} />
+                Previous Step
               </button>
+            ) : (
+              <div className="w-24"></div>
             )}
 
             {step < 3 ? (

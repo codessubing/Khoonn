@@ -1,6 +1,8 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { Suspense, lazy } from "react";
 
+const RoleSelection = lazy(() => import("./pages/RoleSelection"));
+
 // --- Public Pages ---
 const LandingPage = lazy(() => import("./pages/Landing"));
 const About = lazy(() => import("./components/about/About"));
@@ -58,6 +60,9 @@ function App() {
           <Route path="/" element={<LandingPage />} />
           <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />
+
+          {/* register Routes */}
+          <Route path="/role-selection" element={<RoleSelection />} />
           
           {/* Auth Routes */}
           <Route path="/login" element={<Login />} />
@@ -81,8 +86,11 @@ function App() {
             element={<ProtectedRoute><DashboardLayout userRole="hospital" /></ProtectedRoute>}
           >
             <Route index element={<HospitalDashboard />} />
-            <Route path="blood-request-create" element={<HospitalRequestBlood />} />
-            <Route path="blood-request-history" element={<HospitalRequestHistory />} />
+            <Route path="request-blood" element={<HospitalRequestBlood />} />
+            
+            {/* ✅ FIXED: Added missing route for sidebar "Blood Requests" link */}
+            <Route path="blood-requests" element={<HospitalRequestHistory />} />
+            
             <Route path="inventory" element={<HospitalBloodStock />} />
             <Route path="donors" element={<DonorDirectory />} />
           </Route>

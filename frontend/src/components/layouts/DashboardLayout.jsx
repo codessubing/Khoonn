@@ -1,24 +1,9 @@
 import { useState, useEffect } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import {
-  LogOut,
-  Menu,
-  X,
-  User,
-  BarChart3,
-  CheckCircle,
-  Droplet,
-  ClipboardList,
-  History,
-  Building,
-  Shield,
-  Calendar,
-  TestTube,
-  ChevronLeft,
-  ChevronRight,
-  Loader2,
-  ClipboardPlus,
-  Ambulance,
+  LogOut, Menu, X, User, BarChart3, CheckCircle, Droplet,
+  ClipboardList, History, Building, Shield, Calendar, TestTube,
+  ChevronLeft, ChevronRight, Loader2, ClipboardPlus, Ambulance,
 } from "lucide-react";
 
 // ✅ PRODUCTION FIX: Dynamic API base URL
@@ -55,10 +40,15 @@ const DashboardLayout = ({ userRole = "donor" }) => {
       icon: Building,
       items: [
         { path: "/hospital", label: "Dashboard", icon: BarChart3 },
-        { path: "/hospital/blood-request-create", label: "Blood Requests", icon: ClipboardList },
+        
+        // ✅ FIXED: Changed from 'blood-request-create' to 'request-blood'
+        { path: "/hospital/request-blood", label: "Request Blood", icon: ClipboardPlus },
+        
+        // ✅ FIXED: Changed from 'blood-request-history' to 'blood-requests' 
+        { path: "/hospital/blood-requests", label: "Blood Requests", icon: ClipboardList },
+        
         { path: "/hospital/inventory", label: "Inventory", icon: Droplet },
         { path: "/hospital/donors", label: "Donors", icon: User },
-        { path: "/hospital/blood-request-history", label: "History", icon: Ambulance },
       ],
     },
     blood_lab: {
@@ -103,16 +93,13 @@ const DashboardLayout = ({ userRole = "donor" }) => {
 
       while (attempt < maxRetries) {
         try {
-          // ✅ FIXED: Uses dynamic API_BASE_URL instead of hardcoded localhost
           const apiUrl = `${API_BASE_URL}/auth/profile`;
-
           const res = await fetch(apiUrl, {
             headers: { Authorization: `Bearer ${token}` },
           });
 
           const contentType = res.headers.get("content-type");
           if (!contentType || !contentType.includes("application/json")) {
-            console.error("Server returned HTML instead of JSON!");
             throw new Error("Invalid server response");
           }
 
@@ -120,12 +107,9 @@ const DashboardLayout = ({ userRole = "donor" }) => {
             const data = await res.json();
             const user = data.user;
 
-            if (!user) {
-              throw new Error("User data structure invalid.");
-            }
+            if (!user) throw new Error("User data structure invalid.");
 
             if (user.role.toLowerCase() !== userRole.toLowerCase()) {
-              console.error(`Role mismatch: expected ${userRole}, got ${user.role}`);
               localStorage.removeItem("token");
               navigate("/login");
               return;
@@ -135,13 +119,10 @@ const DashboardLayout = ({ userRole = "donor" }) => {
             setIsLoading(false);
             return;
           } else if (res.status === 401 || res.status === 403) {
-            console.error("Authentication failed or token expired.");
             localStorage.removeItem("token");
             navigate("/login");
             setIsLoading(false);
             return;
-          } else {
-            console.error(`Server returned status: ${res.status}`);
           }
         } catch (error) {
           console.error(`Attempt ${attempt + 1} failed:`, error.message);
@@ -153,7 +134,6 @@ const DashboardLayout = ({ userRole = "donor" }) => {
         }
       }
 
-      console.error("All attempts to fetch user data failed.");
       localStorage.removeItem("token");
       navigate("/login");
       setIsLoading(false);
@@ -345,9 +325,7 @@ const DashboardLayout = ({ userRole = "donor" }) => {
                 key={item.path}
                 onClick={() => navigate(item.path)}
                 className={`flex flex-col items-center p-2 rounded-lg transition-colors flex-1 mx-1 ${
-                  isActive
-                    ? "text-primary"
-                    : "text-muted-foreground"
+                  isActive ? "text-primary" : "text-muted-foreground"
                 }`}
               >
                 <Icon size={20} />

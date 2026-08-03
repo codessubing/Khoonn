@@ -2,14 +2,13 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import { toast } from "react-hot-toast";
 import { 
-  Droplet, 
-  MapPin, 
-  Phone, 
-  Clock, 
-  Send, 
-  Loader2,
-  AlertCircle
+  Droplet, MapPin, Phone, Clock, Send, Loader2, AlertCircle 
 } from "lucide-react";
+
+// ✅ PRODUCTION FIX: Dynamic API base URL
+const API_BASE_URL = import.meta.env.PROD
+  ? "https://khoonn-backend.onrender.com"
+  : "http://localhost:5000";
 
 const HospitalRequestBlood = () => {
   const [labs, setLabs] = useState([]);
@@ -21,6 +20,10 @@ const HospitalRequestBlood = () => {
   const [loading, setLoading] = useState(false);
   const [labsLoading, setLabsLoading] = useState(true);
 
+  // ✅ FIXED: Uses dynamic API_BASE_URL instead of relative paths
+  const FACILITY_API = `${API_BASE_URL}/api/facility`;
+  const HOSPITAL_API = `${API_BASE_URL}/api/hospital`;
+
   const bloodTypes = ["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"];
 
   useEffect(() => {
@@ -28,13 +31,14 @@ const HospitalRequestBlood = () => {
       try {
         setLabsLoading(true);
         const token = localStorage.getItem("token");
-        const res = await axios.get("/api/facility/labs", {
+        // ✅ FIXED: Absolute URL pointing to Render backend
+        const res = await axios.get(`${FACILITY_API}/labs`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         setLabs(res.data.labs || []);
       } catch (err) {
         console.error("Load labs error:", err);
-        toast.error("Failed to load blood labs");
+        toast.error(err.response?.data?.message || "Failed to load blood labs");
       } finally {
         setLabsLoading(false);
       }
@@ -49,9 +53,9 @@ const HospitalRequestBlood = () => {
     try {
       const token = localStorage.getItem("token");
       
-      // ✅ FIX: Removed 'const response =' since we don't need to read the response data
+      // ✅ FIXED: Absolute URL pointing to Render backend
       await axios.post(
-        "/api/hospital/blood/request",
+        `${HOSPITAL_API}/blood/request`,
         form,
         { headers: { Authorization: `Bearer ${token}` } }
       );

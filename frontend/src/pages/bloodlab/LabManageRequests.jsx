@@ -2,28 +2,33 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import { toast } from "react-hot-toast";
 import { 
-  CheckCircle, 
-  XCircle, 
-  Clock, 
-  MapPin, 
-  Loader2 
+  CheckCircle, XCircle, Clock, MapPin, Loader2 
 } from "lucide-react";
+
+// ✅ PRODUCTION FIX: Dynamic API base URL
+const API_BASE_URL = import.meta.env.PROD
+  ? "https://khoonn-backend.onrender.com"
+  : "http://localhost:5000";
 
 const LabManageRequests = () => {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // ✅ FIXED: Uses dynamic API_BASE_URL instead of relative paths
+  const API_URL = `${API_BASE_URL}/api/blood-lab`;
+
   const loadRequests = async () => {
     try {
       setLoading(true);
       const token = localStorage.getItem("token");
-      const res = await axios.get("/api/blood-lab/blood/requests", {
+      // ✅ FIXED: Absolute URL pointing to Render backend
+      const res = await axios.get(`${API_URL}/blood/requests`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setRequests(res.data.requests || []);
     } catch (err) {
       console.error("Load requests error:", err);
-      toast.error("Failed to load requests");
+      toast.error(err.response?.data?.message || "Failed to load requests");
     } finally {
       setLoading(false);
     }
@@ -36,9 +41,9 @@ const LabManageRequests = () => {
   const updateStatus = async (id, action) => {
     try {
       const token = localStorage.getItem("token");
-
+      // ✅ FIXED: Absolute URL pointing to Render backend
       await axios.put(
-        `/api/blood-lab/blood/requests/${id}`,
+        `${API_URL}/blood/requests/${id}`,
         { action },
         { headers: { Authorization: `Bearer ${token}` } }
       );

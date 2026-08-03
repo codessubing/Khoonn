@@ -2,17 +2,13 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import { toast } from "react-hot-toast";
 import { 
-  Search, 
-  User, 
-  Phone, 
-  Mail, 
-  Droplet, 
-  Calendar,
-  History,
-  Plus,
-  Loader2,
-  X
+  Search, User, Phone, Mail, Droplet, Calendar, History, Plus, Loader2, X 
 } from "lucide-react";
+
+// ✅ PRODUCTION FIX: Dynamic API base URL
+const API_BASE_URL = import.meta.env.PROD
+  ? "https://khoonn-backend.onrender.com"
+  : "http://localhost:5000";
 
 const BloodLabDonor = () => {
   const [term, setTerm] = useState("");
@@ -26,11 +22,10 @@ const BloodLabDonor = () => {
     bloodGroup: ""
   });
   const [recentDonations, setRecentDonations] = useState([]);
-  const [stats, setStats] = useState({
-    today: 0,
-    thisWeek: 0,
-    total: 0
-  });
+  const [stats, setStats] = useState({ today: 0, thisWeek: 0, total: 0 });
+
+  // ✅ FIXED: Uses dynamic API_BASE_URL instead of relative paths
+  const API_URL = `${API_BASE_URL}/api/blood-lab`;
 
   const getBloodGroupBadgeClass = (bg) => {
     const map = {
@@ -55,8 +50,9 @@ const BloodLabDonor = () => {
     setLoading(true);
     try {
       const token = localStorage.getItem("token");
+      // ✅ FIXED: Absolute URL pointing to Render backend
       const res = await axios.get(
-        `/api/blood-lab/donors/search?term=${term}`,
+        `${API_URL}/donors/search?term=${term}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
@@ -66,7 +62,7 @@ const BloodLabDonor = () => {
       }
     } catch (err) {
       console.error("Search error:", err);
-      toast.error("Search failed");
+      toast.error(err.response?.data?.message || "Search failed");
     } finally {
       setLoading(false);
     }
@@ -75,8 +71,9 @@ const BloodLabDonor = () => {
   const loadRecentDonations = async () => {
     try {
       const token = localStorage.getItem("token");
+      // ✅ FIXED: Absolute URL pointing to Render backend
       const res = await axios.get(
-        "/api/blood-lab/donations/recent",
+        `${API_URL}/donations/recent`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setRecentDonations(res.data.donations || []);
@@ -105,8 +102,9 @@ const BloodLabDonor = () => {
 
     try {
       const token = localStorage.getItem("token");
+      // ✅ FIXED: Absolute URL pointing to Render backend
       await axios.post(
-        `/api/blood-lab/donors/donate/${selectedDonor._id}`,
+        `${API_URL}/donors/donate/${selectedDonor._id}`,
         donationData,
         { headers: { Authorization: `Bearer ${token}` } }
       );

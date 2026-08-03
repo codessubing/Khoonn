@@ -1,15 +1,21 @@
+// ✅ 1. Load dotenv FIRST to fix ESM hoisting issue
+import dotenv from "dotenv";
+dotenv.config();
+
+// ✅ 2. All other imports (ensure no duplicates exist in this file)
 import jwt from "jsonwebtoken";
-import User from "../models/UserModel.js"; // Ensure this path matches your actual User model
+import Donor from "../models/donorModel.js";
+import Facility from "../models/facilityModel.js";
+import Admin from "../models/adminModel.js";
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
 if (!JWT_SECRET) {
-  console.error("⚠️ FATAL: JWT_SECRET is not defined in environment variables!");
+  console.error("️ FATAL: JWT_SECRET is not defined in environment variables!");
 }
 
 /**
- * @desc Authenticate user via JWT token
- * @access Public (Middleware)
+ * @desc Authenticate user via JWT token and attach correct model instance to req.user
  */
 export const authenticate = async (req, res, next) => {
   try {
@@ -24,13 +30,39 @@ export const authenticate = async (req, res, next) => {
       });
     }
 
-    // Verify token
+    // Verify token signature and expiration
     const decoded = jwt.verify(token, JWT_SECRET);
     
-    // Fetch user and exclude password
+    // ✅ DEBUG LOG: See exactly what role is in the token
+    console.log("🔍 DECODED TOKEN ROLE:", decoded.role); 
+    
+    // ✅ DYNAMIC MODEL SELECTION based on stored role
+    let User;
+    switch (decoded.role) {
+      case "donor":
+        User = Donor;
+        break;
+      case "hospital":
+      case "blood-lab":
+      case "facility": // ✅ ADDED: Support legacy/alternate role name
+        User = Facility;
+        break;
+      case "admin":
+        User = Admin;
+        break;
+      default:
+        console.log("❌ UNKNOWN ROLE IN TOKEN:", decoded.role);
+        return res.status(401).json({
+          success: false,
+          message: `Invalid user role in token: ${decoded.role}`
+        });
+    }
+
+    // Fetch user from the correct collection and exclude password
     const user = await User.findById(decoded.id).select("-password");
 
     if (!user) {
+      console.log("❌ USER NOT FOUND FOR ID:", decoded.id, "IN COLLECTION:", User.modelName);
       return res.status(401).json({
         success: false,
         message: "User associated with this token no longer exists."
@@ -42,8 +74,8 @@ export const authenticate = async (req, res, next) => {
     next();
     
   } catch (error) {
-    // Log the specific error for debugging (e.g., TokenExpiredError, JsonWebTokenError)
-    console.error("🚨 Authentication Middleware Error:", error.name, error.message);
+    // Log the specific error for debugging
+    console.error("🚨 Authentication Middleware Error:", error.name, "-", error.message);
     
     res.status(401).json({
       success: false,
@@ -56,7 +88,6 @@ export const authenticate = async (req, res, next) => {
 
 /**
  * @desc Authorize user based on role(s)
- * @access Private (Middleware)
  * @param {...string} roles - Allowed roles (e.g., 'admin', 'hospital', 'donor')
  */
 export const authorize = (...roles) => {

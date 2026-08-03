@@ -16,7 +16,7 @@ import {
   AlertTriangle,
   Stethoscope,
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link } from "react-router-dom"; // ✅ Ensure Link is imported
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 
@@ -197,16 +197,18 @@ const LandingPage = () => {
               lives when every second counts.
             </p>
 
-            <div className="flex flex-col  sm:flex-row gap-4 justify-center">
-              <Link to="/auth">
-                <button className="btn-advanced text-base px-8 py-3">
-                  Get Started <ArrowRight className="w-4 h-4 ml-2" />
-                </button>
-              </Link>
-              <Link to="#about">
-                <button className="btn-ghost text-base px-8 py-3">
-                  Learn More
-                </button>
+<div className="flex flex-col sm:flex-row gap-4 justify-center">
+  <Link
+    to="/role-selection"
+    className="btn-advanced text-base px-8 py-3 inline-flex items-center justify-center"
+  >
+    Get Started <ArrowRight className="w-4 h-4 ml-2" />
+  </Link>
+              <Link 
+                to="#about" 
+                className="btn-ghost text-base px-8 py-3 inline-flex items-center justify-center"
+              >
+                Learn More
               </Link>
             </div>
           </div>
@@ -541,10 +543,13 @@ const LandingPage = () => {
               together to ensure blood is available when and where it's needed
               most.
             </p>
-            <Link to="/auth">
-              <button className="inline-flex items-center justify-center px-8 py-3 text-lg font-medium rounded-lg bg-background text-primary hover:bg-muted transition-all duration-300 shadow-lg">
-                Join Today <ArrowRight className="w-4 h-4 ml-2" />
-              </button>
+            
+            {/* ✅ UPDATED: Direct Link with styled button appearance */}
+            <Link 
+              to="/role-selection" 
+              className="inline-flex items-center justify-center px-8 py-3 text-lg font-medium rounded-lg bg-background text-primary hover:bg-muted transition-all duration-300 shadow-lg"
+            >
+              Join Today <ArrowRight className="w-4 h-4 ml-2" />
             </Link>
           </div>
         </div>

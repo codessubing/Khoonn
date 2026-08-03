@@ -1,22 +1,15 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import {
-  Droplet,
-  Calendar,
-  Search,
-  Filter,
-  Download,
-  MapPin,
-  AlertCircle,
-  Award,
-  TrendingUp,
-  Heart,
-  Star,
-  Loader2,
+  Droplet, Calendar, Search, Filter, Download, MapPin, AlertCircle,
+  Award, TrendingUp, Heart, Star, Loader2,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 
-const API_URL = `${import.meta.env.VITE_API_URL || ""}/api/donor`;
+// ✅ PRODUCTION FIX: Dynamic API base URL
+const API_BASE_URL = import.meta.env.PROD
+  ? "https://khoonn-backend.onrender.com"
+  : "http://localhost:5000";
 
 const DonorDonationHistory = () => {
   const [history, setHistory] = useState([]);
@@ -33,6 +26,9 @@ const DonorDonationHistory = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState("all");
   const [sortBy, setSortBy] = useState("date-desc");
+
+  // ✅ FIXED: Uses dynamic API_BASE_URL instead of VITE_API_URL
+  const API_URL = `${API_BASE_URL}/api/donor`;
 
   const fetchHistory = async () => {
     try {
@@ -67,7 +63,7 @@ const DonorDonationHistory = () => {
       if (err.response?.status === 401) {
         toast.error("Session expired. Please login again.");
       } else {
-        toast.error("Failed to load donation history");
+        toast.error(err.response?.data?.message || "Failed to load donation history");
       }
     }
     setLoading(false);

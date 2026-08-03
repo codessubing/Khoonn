@@ -1,26 +1,15 @@
 import React, { useState, useEffect } from "react";
 import { toast } from "react-hot-toast";
 import {
-  Hospital,
-  Mail,
-  Phone,
-  MapPin,
-  RefreshCw,
-  CheckCircle,
-  XCircle,
-  Clock,
-  Users,
-  Search,
-  ChevronDown,
-  ChevronUp,
-  Tag,
-  Briefcase,
-  Shield,
-  AlertTriangle,
-  Building2,
+  Hospital, Mail, Phone, MapPin, RefreshCw, CheckCircle, XCircle, Clock,
+  Users, Search, ChevronDown, ChevronUp, Tag, Briefcase, Shield,
+  AlertTriangle, Building2,
 } from "lucide-react";
 
-const API_URL = `${import.meta.env.VITE_API_URL || "http://localhost:5000/api"}/admin`;
+// ✅ PRODUCTION FIX: Dynamic API base URL
+const API_BASE_URL = import.meta.env.PROD
+  ? "https://khoonn-backend.onrender.com"
+  : "http://localhost:5000";
 
 function GetAllFacilities() {
   const [facilities, setFacilities] = useState([]);
@@ -35,6 +24,8 @@ function GetAllFacilities() {
   });
 
   const token = localStorage.getItem("token");
+  // ✅ FIXED: Uses dynamic API_BASE_URL instead of VITE_API_URL
+  const API_URL = `${API_BASE_URL}/api/admin`;
   const facilityTypes = ["hospital", "blood-lab"];
   const statuses = ["pending", "approved", "rejected"];
 
@@ -49,6 +40,14 @@ function GetAllFacilities() {
           "Content-Type": "application/json",
         },
       });
+
+      // ✅ ENHANCED: Handle auth failures explicitly
+      if (res.status === 401 || res.status === 403) {
+        localStorage.removeItem("token");
+        toast.error("Session expired. Please login again.");
+        window.location.href = "/login";
+        return;
+      }
 
       if (!res.ok) {
         throw new Error(`Failed to fetch facilities: ${res.status}`);

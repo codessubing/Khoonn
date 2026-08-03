@@ -1,8 +1,12 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { forgotPassword } from "../api/auth";
 import { toast } from "react-hot-toast";
 import { Mail, Loader2, ArrowLeft } from "lucide-react";
+
+// ✅ PRODUCTION FIX: Dynamic API base URL
+const API_BASE_URL = import.meta.env.PROD
+  ? "https://khoonn-backend.onrender.com"
+  : "http://localhost:5000";
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState("");
@@ -14,11 +18,23 @@ export default function ForgotPassword() {
     setLoading(true);
     
     try {
-      await forgotPassword(email);
+      // ✅ FIXED: Direct fetch to Render backend instead of relative import
+      const res = await fetch(`${API_BASE_URL}/api/auth/forgot-password`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to send reset instructions");
+      }
+
       toast.success("If an account exists, reset instructions have been sent to your email.");
+      // Optional: Redirect to login after success
+      // setTimeout(() => navigate("/login"), 3000);
     } catch (error) {
       console.error("Forgot password error:", error);
-      toast.error("Failed to send reset instructions. Please try again.");
+      toast.error(error.message || "Failed to send reset instructions. Please try again.");
     } finally {
       setLoading(false);
     }

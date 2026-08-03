@@ -2,17 +2,14 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import {
-  User,
-  Mail,
-  Shield,
-  LogOut,
-  Loader2,
-  AlertCircle,
-  Building2,
-  Droplet,
-  Heart,
-  Edit3,
+  User, Mail, Shield, LogOut, Loader2, AlertCircle,
+  Building2, Droplet, Heart, Edit3,
 } from "lucide-react";
+
+// ✅ PRODUCTION FIX: Dynamic API base URL
+const API_BASE_URL = import.meta.env.PROD
+  ? "https://khoonn-backend.onrender.com"
+  : "http://localhost:5000";
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -28,7 +25,8 @@ export default function Profile() {
         return;
       }
 
-      const res = await fetch("/api/auth/profile", {
+      // ✅ FIXED: Absolute URL pointing to Render backend
+      const res = await fetch(`${API_BASE_URL}/api/auth/profile`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -40,7 +38,12 @@ export default function Profile() {
       setUser(data.user || data);
     } catch (err) {
       console.error("Profile fetch error:", err);
-      setError("Failed to load profile. Please try again.");
+      if (err.response?.status === 401) {
+        localStorage.removeItem("token");
+        navigate("/login", { replace: true });
+      } else {
+        setError("Failed to load profile. Please try again.");
+      }
     } finally {
       setLoading(false);
     }

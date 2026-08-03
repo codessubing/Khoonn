@@ -13,7 +13,7 @@ const facilitySchema = new mongoose.Schema(
     email: {
       type: String,
       required: [true, "Email is required"],
-      unique: true,
+      unique: true, // ✅ This ALONE creates the index - no need for schema.index() below
       lowercase: true,
       trim: true,
       match: [/^\S+@\S+\.\S+$/, "Please enter a valid email address"],
@@ -22,14 +22,13 @@ const facilitySchema = new mongoose.Schema(
       type: String,
       required: [true, "Password is required"],
       minlength: [6, "Password must be at least 6 characters"],
-      select: false, // 🔑 IMPORTANT: Prevents password from being returned in queries
+      select: false,
     },
 
     // 📞 Contact Info
     phone: {
       type: String,
       required: [true, "Phone number is required"],
-      // ✅ FIXED: Nepal phone numbers start with 9 (e.g., 98XXXXXXXX)
       match: [/^[9][0-9]{9}$/, "Please enter a valid 10-digit Nepal phone number"],
     },
     emergencyContact: {
@@ -38,7 +37,6 @@ const facilitySchema = new mongoose.Schema(
       match: [/^[9][0-9]{9}$/, "Please enter a valid 10-digit Nepal phone number"],
     },
     
-    // ✅ ADDED: Fields referenced in your updateProfile controller
     contactPerson: { type: String, trim: true },
     services: { type: String, trim: true },
     description: { type: String, trim: true },
@@ -52,17 +50,16 @@ const facilitySchema = new mongoose.Schema(
       pincode: {
         type: String,
         required: [true, "Pincode is required"],
-        // ✅ FIXED: Updated to 5-digit regex for Nepal postal codes (e.g., 32900)
         match: [/^[0-9]{5}$/, "Please enter a valid 5-digit postal code"],
         trim: true,
       },
     },
 
-    // 🧾 Facility Details
+    //  Facility Details
     registrationNumber: {
       type: String,
       required: [true, "Registration number is required"],
-      unique: true,
+      unique: true, // ✅ This ALONE creates the index - no need for schema.index() below
       uppercase: true,
       trim: true,
     },
@@ -99,7 +96,7 @@ const facilitySchema = new mongoose.Schema(
         message: "{VALUE} is not a valid status"
       },
       default: "pending",
-      index: true, // ✅ Index for fast admin filtering
+      index: true, // ✅ Non-unique field - explicit index is correct here
     },
     approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: "Admin" },
     approvedAt: { type: Date, default: null },
@@ -118,7 +115,7 @@ const facilitySchema = new mongoose.Schema(
     is24x7: { type: Boolean, default: false },
     emergencyServices: { type: Boolean, default: false },
 
-    // 📜 History for Admin Dashboard
+    //  History for Admin Dashboard
     history: {
       type: [
         {
@@ -132,12 +129,12 @@ const facilitySchema = new mongoose.Schema(
               "Request Approved",
               "Profile Update",
               "Donation",
-              "Contact", // ✅ Added for contact logging
+              "Contact",
             ],
           },
           description: { type: String, trim: true },
           date: { type: Date, default: Date.now },
-          referenceId: { type: mongoose.Schema.Types.ObjectId }, // ✅ Added to link to specific records (e.g., camp ID, request ID)
+          referenceId: { type: mongoose.Schema.Types.ObjectId },
         },
       ],
       default: [],
@@ -176,7 +173,7 @@ facilitySchema.pre("save", async function (next) {
   }
 });
 
-// 🧠 Compare password
+//  Compare password
 facilitySchema.methods.comparePassword = async function (candidatePassword) {
   try {
     return await bcrypt.compare(candidatePassword.trim(), this.password);
@@ -185,9 +182,9 @@ facilitySchema.methods.comparePassword = async function (candidatePassword) {
   }
 };
 
-// ✅ Performance Indexes
-facilitySchema.index({ email: 1 });
-facilitySchema.index({ registrationNumber: 1 });
+// ✅ Performance Indexes (only for NON-unique fields)
+// ❌ REMOVED: facilitySchema.index({ email: 1 });           <- 'unique' already handles this
+// ❌ REMOVED: facilitySchema.index({ registrationNumber: 1 }); <- 'unique' already handles this
 facilitySchema.index({ facilityType: 1, status: 1 }); // Speeds up admin approval lists
 
 export default mongoose.model("Facility", facilitySchema);

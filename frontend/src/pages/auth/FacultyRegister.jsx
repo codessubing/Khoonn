@@ -1,14 +1,19 @@
 "use client";
 import { useState } from "react";
 import toast from "react-hot-toast";
-import { useNavigate } from "react-router-dom";
-import { AlertCircle, Eye, EyeOff, Loader2 } from "lucide-react";
+import { useNavigate, Link } from "react-router-dom"; // ✅ Added Link import
+import { AlertCircle, Eye, EyeOff, Loader2, ChevronLeft } from "lucide-react"; // ✅ Added ChevronLeft
+
+// ✅ PRODUCTION FIX: Dynamic API base URL
+const API_BASE_URL = import.meta.env.PROD
+  ? "https://khoonn-backend.onrender.com"
+  : "http://localhost:5000";
 
 // Constants for better maintainability
 const FACILITY_TYPES = ["Hospital", "Blood Lab"];
 const FACILITY_CATEGORIES = ["Government", "Private", "Trust", "Charity", "Other"];
 
-// ✅ UPDATED: Nepal Provinces and major cities/districts
+// Nepal Provinces and major cities/districts
 const NEPAL_LOCATIONS = {
   "Koshi Province": ["Biratnagar", "Dharan", "Itahari", "Damak", "Birtamod"],
   "Madhesh Province": ["Janakpur", "Birgunj", "Kalaiya", "Lahan", "Rajbiraj"],
@@ -45,7 +50,6 @@ const validators = {
   phone: (value) => {
     if (!value) return "Phone number is required";
     if (value.length !== 10) return "Phone number must be exactly 10 digits";
-    // ✅ UPDATED: Nepal phone numbers start with 9
     if (!/^[9][0-9]{9}$/.test(value)) return "Phone number must start with 9 (e.g., 98XXXXXXXX)";
     return "";
   },
@@ -61,7 +65,6 @@ const validators = {
   "address.state": (value) => (!value.trim() ? "Province is required" : ""),
   "address.pincode": (value) => {
     if (!value) return "Pincode is required";
-    // ✅ UPDATED: Nepal uses 5-digit postal codes
     if (!/^[0-9]{5}$/.test(value)) return "Pincode must be exactly 5 digits (e.g., 32900)";
     return "";
   },
@@ -253,11 +256,10 @@ export default function FacilityRegisterForm() {
       role: roleSlug,
     };
 
-    // ✅ FIXED: Prevents the double /api/api/ bug
-    const baseURL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
-    const API_URL = `${baseURL}/auth/register`; 
+    // ✅ FIXED: Uses dynamic API_BASE_URL instead of VITE_API_URL
+    const API_URL = `${API_BASE_URL}/api/auth/register`; 
 
-    console.log("Submitting to:", API_URL); // Verify this in your browser console
+    console.log("Submitting to:", API_URL);
 
     try {
       const response = await fetch(API_URL, {
@@ -291,8 +293,18 @@ export default function FacilityRegisterForm() {
     <div className="min-h-screen bg-background flex items-center justify-center py-8 px-4">
       <div className="w-full max-w-3xl bg-card border border-border rounded-2xl shadow-sm overflow-hidden">
         {/* Header Section */}
-        <div className="p-6 sm:p-8 border-b border-border bg-muted/30">
-          <h1 className="text-2xl font-bold tracking-tight text-foreground text-center mb-2">
+        <div className="p-6 sm:p-8 border-b border-border bg-muted/30 relative">
+          
+          {/* ✅ PROFESSIONAL BACK BUTTON - Placed absolutely in top-left */}
+          <Link 
+            to="/" 
+            className="absolute left-6 top-6 inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors group z-10"
+          >
+            <ChevronLeft size={16} className="group-hover:-translate-x-0.5 transition-transform" />
+            Back to Home
+          </Link>
+
+          <h1 className="text-2xl font-bold tracking-tight text-foreground text-center mb-2 mt-8 sm:mt-0">
             Blood Facility Registration
           </h1>
           <p className="text-center text-muted-foreground mb-6">
@@ -709,17 +721,22 @@ export default function FacilityRegisterForm() {
             </div>
           )}
 
-          {/* Navigation Buttons */}
+          {/* ✅ UPDATED: Navigation Buttons */}
           <div className={`flex ${step > 1 ? "justify-between" : "justify-end"} pt-6 border-t border-border`}>
-            {step > 1 && (
+            {step > 1 ? (
+              // ✅ Styled Back Button for Multi-step Navigation
               <button
                 type="button"
                 onClick={handleBack}
-                className="btn-ghost"
                 disabled={isSubmitting}
+                className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted disabled:opacity-50"
               >
-                Back
+                <ChevronLeft size={16} />
+                Previous Step
               </button>
+            ) : (
+              // Invisible spacer to maintain centering when no back button exists
+              <div className="w-24"></div>
             )}
 
             {step < 3 ? (

@@ -11,10 +11,10 @@ const adminSchema = new mongoose.Schema(
     email: {
       type: String,
       required: [true, "Email is required"],
-      unique: true,
+      unique: true, // ✅ This ALONE creates the index. No extra 'index: true' needed.
       lowercase: true,
       trim: true,
-      match: [/^\S+@\S+\.\S+$/, "Please enter a valid email address"], // Added email regex validation
+      match: [/^\S+@\S+\.\S+$/, "Please enter a valid email address"],
     },
     password: {
       type: String,
@@ -38,7 +38,6 @@ const adminSchema = new mongoose.Schema(
   },
   { 
     timestamps: true,
-    // ✅ SECURITY ENHANCEMENT: Automatically strip sensitive fields from JSON responses
     toJSON: { 
       transform: function (doc, ret) {
         delete ret.password;
@@ -58,7 +57,6 @@ const adminSchema = new mongoose.Schema(
 
 // Hash password before saving
 adminSchema.pre("save", async function (next) {
-  // Only hash the password if it has been modified (or is new)
   if (!this.isModified("password")) return next();
   
   try {

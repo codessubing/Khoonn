@@ -1,23 +1,26 @@
 import { useEffect, useState } from "react";
 import {
-  Calendar,
-  Clock,
-  MapPin,
-  Users,
-  Plus,
-  Trash2,
-  Edit3,
-  Search,
-  ChevronDown,
-  ChevronUp,
-  Droplet,
-  CheckCircle,
-  XCircle,
-  MoreVertical,
-  Loader2,
-  AlertCircle,
+  Calendar, Clock, MapPin, Users, Plus, Trash2, Edit3, Search,
+  ChevronDown, ChevronUp, Droplet, CheckCircle, XCircle, MoreVertical,
+  Loader2, AlertCircle,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
+
+// ✅ PRODUCTION FIX: Dynamic API base URL
+const API_BASE_URL = import.meta.env.PROD
+  ? "https://khoonn-backend.onrender.com"
+  : "http://localhost:5000";
+
+// 🇳🇵 NEPAL SPECIFIC DATA: Provinces and Major Districts/Cities
+const NEPAL_LOCATIONS = {
+  "Koshi Province": ["Biratnagar", "Dharan", "Itahari", "Damak", "Birtamod", "Jhapa", "Morang", "Sunsari"],
+  "Madhesh Province": ["Janakpur", "Birgunj", "Kalaiya", "Lahan", "Rajbiraj", "Siraha", "Saptari"],
+  "Bagmati Province": ["Kathmandu", "Lalitpur", "Bhaktapur", "Bharatpur", "Hetauda", "Dhulikhel", "Pokhara"],
+  "Gandaki Province": ["Pokhara", "Baglung", "Damauli", "Gorkha", "Chitwan", "Nawalpur"],
+  "Lumbini Province": ["Butwal", "Nepalgunj", "Tansen", "Siddharthanagar", "Kapilvastu", "Dang", "Banke"],
+  "Karnali Province": ["Birendranagar", "Jumla", "Dailekh", "Kalikot", "Surkhet"],
+  "Sudurpashchim Province": ["Dhangadhi", "Mahendranagar", "Dipayal", "Tikapur", "Kailali", "Kanchanpur"],
+};
 
 const BloodCamps = () => {
   const [camps, setCamps] = useState([]);
@@ -44,6 +47,8 @@ const BloodCamps = () => {
     cancelled: 0,
     total: 0,
   });
+  
+  // ✅ UPDATED FORM STATE FOR NEPAL
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -51,17 +56,18 @@ const BloodCamps = () => {
     startTime: "",
     endTime: "",
     venue: "",
-    city: "",
-    state: "",
+    province: "", // Changed from state to province
+    city: "",     // Now acts as District/City
     pincode: "",
     expectedDonors: "",
   });
+  
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [actionMenu, setActionMenu] = useState(null);
 
   const token = localStorage.getItem("token");
-  const API_URL = `${import.meta.env.VITE_API_URL || ""}/api/blood-lab`;
+  const API_URL = `${API_BASE_URL}/api/blood-lab`;
 
   const calculateStats = (campsData) => ({
     upcoming: campsData.filter((camp) => camp.status === "Upcoming").length,
@@ -78,10 +84,14 @@ const BloodCamps = () => {
     if (!data.startTime) newErrors.startTime = "Start time is required";
     if (!data.endTime) newErrors.endTime = "End time is required";
     if (!data.venue?.trim()) newErrors.venue = "Venue is required";
-    if (!data.city?.trim()) newErrors.city = "City is required";
-    if (!data.state?.trim()) newErrors.state = "State is required";
-    if (!data.pincode?.match(/^[1-9][0-9]{5}$/))
-      newErrors.pincode = "Valid 6-digit pincode required";
+    
+    // ✅ VALIDATION FOR NEPAL FIELDS
+    if (!data.province) newErrors.province = "Province is required";
+    if (!data.city) newErrors.city = "District/City is required";
+    
+    if (!data.pincode?.match(/^[1-9][0-9]{4}$/))
+      newErrors.pincode = "Valid 5-digit Nepal pincode required";
+      
     if (!data.expectedDonors || data.expectedDonors < 1)
       newErrors.expectedDonors = "Expected donors must be at least 1";
 
@@ -197,7 +207,6 @@ const BloodCamps = () => {
 
   useEffect(() => {
     fetchCamps();
-    // Close action menu when clicking outside
     const handleClickOutside = () => setActionMenu(null);
     document.addEventListener("click", handleClickOutside);
     return () => document.removeEventListener("click", handleClickOutside);
@@ -211,8 +220,8 @@ const BloodCamps = () => {
       startTime: "",
       endTime: "",
       venue: "",
+      province: "",
       city: "",
-      state: "",
       pincode: "",
       expectedDonors: "",
     });
@@ -235,6 +244,7 @@ const BloodCamps = () => {
       const url = editingCamp ? `${API_URL}/camps/${editingCamp._id}` : `${API_URL}/camps`;
       const method = editingCamp ? "PUT" : "POST";
 
+      // ✅ MAPPING NEPAL FIELDS TO BACKEND EXPECTED STRUCTURE
       const payload = {
         title: formData.title.trim(),
         description: formData.description.trim(),
@@ -243,7 +253,7 @@ const BloodCamps = () => {
         location: {
           venue: formData.venue.trim(),
           city: formData.city.trim(),
-          state: formData.state.trim(),
+          state: formData.province, // Mapping 'province' to backend 'state'
           pincode: formData.pincode,
         },
         expectedDonors: Number(formData.expectedDonors),
@@ -290,8 +300,9 @@ const BloodCamps = () => {
       startTime: camp.time.start,
       endTime: camp.time.end,
       venue: camp.location.venue,
+      // ✅ REVERSE MAPPING FOR EDIT MODE
+      province: camp.location.state || "", 
       city: camp.location.city,
-      state: camp.location.state,
       pincode: camp.location.pincode,
       expectedDonors: camp.expectedDonors.toString(),
     });
@@ -332,68 +343,27 @@ const BloodCamps = () => {
 
   const StatusBadge = ({ status }) => {
     const statusConfig = {
-      Upcoming: {
-        color: "bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20",
-        label: "Upcoming",
-        icon: Calendar,
-      },
-      Ongoing: {
-        color: "bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20",
-        label: "Ongoing",
-        icon: Clock,
-      },
-      Completed: {
-        color: "bg-muted text-muted-foreground border-border",
-        label: "Completed",
-        icon: CheckCircle,
-      },
-      Cancelled: {
-        color: "bg-destructive/10 text-destructive border-destructive/20",
-        label: "Cancelled",
-        icon: XCircle,
-      },
+      Upcoming: { color: "bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20", label: "Upcoming", icon: Calendar },
+      Ongoing: { color: "bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20", label: "Ongoing", icon: Clock },
+      Completed: { color: "bg-muted text-muted-foreground border-border", label: "Completed", icon: CheckCircle },
+      Cancelled: { color: "bg-destructive/10 text-destructive border-destructive/20", label: "Cancelled", icon: XCircle },
     };
-
     const config = statusConfig[status] || statusConfig.Upcoming;
     const IconComponent = config.icon;
-
     return (
       <span className={`px-2.5 py-1 rounded-full text-xs font-medium flex items-center gap-1.5 border ${config.color}`}>
-        <IconComponent size={12} />
-        {config.label}
+        <IconComponent size={12} /> {config.label}
       </span>
     );
   };
 
   const getAvailableActions = (camp) => {
     switch (camp.status) {
-      case "Upcoming":
-        return [
-          { label: "Mark as Ongoing", value: "Ongoing", color: "text-green-600 dark:text-green-400" },
-          { label: "Cancel Camp", value: "Cancelled", color: "text-destructive" },
-        ];
-      case "Ongoing":
-        return [
-          { label: "Mark as Completed", value: "Completed", color: "text-foreground" },
-          { label: "Cancel Camp", value: "Cancelled", color: "text-destructive" },
-        ];
-      case "Completed":
-        return [
-          { label: "Re-open as Ongoing", value: "Ongoing", color: "text-green-600 dark:text-green-400" },
-          { label: "Mark as Upcoming", value: "Upcoming", color: "text-blue-600 dark:text-blue-400" },
-        ];
-      case "Cancelled":
-        return [
-          { label: "Re-schedule as Upcoming", value: "Upcoming", color: "text-blue-600 dark:text-blue-400" },
-          { label: "Mark as Ongoing", value: "Ongoing", color: "text-green-600 dark:text-green-400" },
-        ];
-      default:
-        return [
-          { label: "Mark as Upcoming", value: "Upcoming", color: "text-blue-600 dark:text-blue-400" },
-          { label: "Mark as Ongoing", value: "Ongoing", color: "text-green-600 dark:text-green-400" },
-          { label: "Mark as Completed", value: "Completed", color: "text-foreground" },
-          { label: "Cancel Camp", value: "Cancelled", color: "text-destructive" },
-        ];
+      case "Upcoming": return [{ label: "Mark as Ongoing", value: "Ongoing", color: "text-green-600" }, { label: "Cancel Camp", value: "Cancelled", color: "text-destructive" }];
+      case "Ongoing": return [{ label: "Mark as Completed", value: "Completed", color: "text-foreground" }, { label: "Cancel Camp", value: "Cancelled", color: "text-destructive" }];
+      case "Completed": return [{ label: "Re-open as Ongoing", value: "Ongoing", color: "text-green-600" }, { label: "Mark as Upcoming", value: "Upcoming", color: "text-blue-600" }];
+      case "Cancelled": return [{ label: "Re-schedule as Upcoming", value: "Upcoming", color: "text-blue-600" }, { label: "Mark as Ongoing", value: "Ongoing", color: "text-green-600" }];
+      default: return [{ label: "Mark as Upcoming", value: "Upcoming", color: "text-blue-600" }, { label: "Mark as Ongoing", value: "Ongoing", color: "text-green-600" }];
     }
   };
 
@@ -403,81 +373,36 @@ const BloodCamps = () => {
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div className="flex items-center gap-4">
-            <div className="p-2.5 rounded-xl bg-primary/10">
-              <Droplet className="w-6 h-6 text-primary" />
-            </div>
+            <div className="p-2.5 rounded-xl bg-primary/10"><Droplet className="w-6 h-6 text-primary" /></div>
             <div>
-              <h1 className="text-2xl font-bold tracking-tight text-foreground">
-                Blood Donation Camps
-              </h1>
-              <p className="text-sm text-muted-foreground mt-1">
-                Manage and organize blood donation camps
-              </p>
+              <h1 className="text-2xl font-bold tracking-tight text-foreground">Blood Donation Camps</h1>
+              <p className="text-sm text-muted-foreground mt-1">Manage and organize blood donation camps across Nepal</p>
             </div>
           </div>
-          <button
-            onClick={() => {
-              resetForm();
-              setShowForm(!showForm);
-            }}
-            className="btn-advanced flex items-center gap-2"
-          >
-            {showForm ? "Cancel" : (
-              <>
-                <Plus size={18} />
-                Add Camp
-              </>
-            )}
+          <button onClick={() => { resetForm(); setShowForm(!showForm); }} className="btn-advanced flex items-center gap-2">
+            {showForm ? "Cancel" : <><Plus size={18} /> Add Camp</>}
           </button>
         </div>
 
         {/* Stats Cards */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          <div className="bg-card border border-border rounded-xl p-5">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <Droplet className="w-4 h-4 text-primary" />
+          {[
+            { label: "Total", val: stats.total, icon: Droplet, color: "primary" },
+            { label: "Upcoming", val: stats.upcoming, icon: Calendar, color: "blue" },
+            { label: "Ongoing", val: stats.ongoing, icon: Clock, color: "green" },
+            { label: "Completed", val: stats.completed, icon: CheckCircle, color: "muted" },
+            { label: "Cancelled", val: stats.cancelled, icon: XCircle, color: "destructive" },
+          ].map((stat, i) => (
+            <div key={i} className="bg-card border border-border rounded-xl p-5">
+              <div className="flex items-center gap-3 mb-2">
+                <div className={`p-2 rounded-lg ${stat.color === 'primary' ? 'bg-primary/10' : stat.color === 'blue' ? 'bg-blue-500/10' : stat.color === 'green' ? 'bg-green-500/10' : stat.color === 'destructive' ? 'bg-destructive/10' : 'bg-muted'}`}>
+                  <stat.icon className={`w-4 h-4 ${stat.color === 'primary' ? 'text-primary' : stat.color === 'blue' ? 'text-blue-600' : stat.color === 'green' ? 'text-green-600' : stat.color === 'destructive' ? 'text-destructive' : 'text-muted-foreground'}`} />
+                </div>
+                <span className="text-xs font-medium text-muted-foreground">{stat.label}</span>
               </div>
-              <span className="text-xs font-medium text-muted-foreground">Total</span>
+              <div className="text-2xl font-bold tracking-tight text-foreground">{stat.val}</div>
             </div>
-            <div className="text-2xl font-bold tracking-tight text-foreground">{stats.total}</div>
-          </div>
-          <div className="bg-card border border-border rounded-xl p-5">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 rounded-lg bg-blue-500/10">
-                <Calendar className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-              </div>
-              <span className="text-xs font-medium text-muted-foreground">Upcoming</span>
-            </div>
-            <div className="text-2xl font-bold tracking-tight text-foreground">{stats.upcoming}</div>
-          </div>
-          <div className="bg-card border border-border rounded-xl p-5">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 rounded-lg bg-green-500/10">
-                <Clock className="w-4 h-4 text-green-600 dark:text-green-400" />
-              </div>
-              <span className="text-xs font-medium text-muted-foreground">Ongoing</span>
-            </div>
-            <div className="text-2xl font-bold tracking-tight text-foreground">{stats.ongoing}</div>
-          </div>
-          <div className="bg-card border border-border rounded-xl p-5">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 rounded-lg bg-muted">
-                <CheckCircle className="w-4 h-4 text-muted-foreground" />
-              </div>
-              <span className="text-xs font-medium text-muted-foreground">Completed</span>
-            </div>
-            <div className="text-2xl font-bold tracking-tight text-foreground">{stats.completed}</div>
-          </div>
-          <div className="bg-card border border-border rounded-xl p-5">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 rounded-lg bg-destructive/10">
-                <XCircle className="w-4 h-4 text-destructive" />
-              </div>
-              <span className="text-xs font-medium text-muted-foreground">Cancelled</span>
-            </div>
-            <div className="text-2xl font-bold tracking-tight text-foreground">{stats.cancelled}</div>
-          </div>
+          ))}
         </div>
 
         {/* Filters */}
@@ -485,50 +410,27 @@ const BloodCamps = () => {
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <input
-                type="text"
-                placeholder="Search camps..."
-                value={filters.search}
-                onChange={(e) => setFilters((prev) => ({ ...prev, search: e.target.value }))}
-                className="input-minimal pl-9"
-              />
+              <input type="text" placeholder="Search camps..." value={filters.search} onChange={(e) => setFilters((prev) => ({ ...prev, search: e.target.value }))} className="input-minimal pl-9" />
             </div>
-            <select
-              value={filters.status}
-              onChange={(e) => setFilters((prev) => ({ ...prev, status: e.target.value }))}
-              className="input-minimal w-full sm:w-auto min-w-[140px]"
-            >
+            <select value={filters.status} onChange={(e) => setFilters((prev) => ({ ...prev, status: e.target.value }))} className="input-minimal w-full sm:w-auto min-w-[140px]">
               <option value="all">All Status</option>
               <option value="Upcoming">Upcoming</option>
               <option value="Ongoing">Ongoing</option>
               <option value="Completed">Completed</option>
               <option value="Cancelled">Cancelled</option>
             </select>
-            <select
-              value={filters.sortBy}
-              onChange={(e) => setFilters((prev) => ({ ...prev, sortBy: e.target.value }))}
-              className="input-minimal w-full sm:w-auto min-w-[140px]"
-            >
+            <select value={filters.sortBy} onChange={(e) => setFilters((prev) => ({ ...prev, sortBy: e.target.value }))} className="input-minimal w-full sm:w-auto min-w-[140px]">
               <option value="date">Sort by Date</option>
               <option value="title">Sort by Title</option>
               <option value="expectedDonors">Sort by Donors</option>
             </select>
-            <button
-              onClick={() =>
-                setFilters((prev) => ({
-                  ...prev,
-                  sortOrder: prev.sortOrder === "desc" ? "asc" : "desc",
-                }))
-              }
-              className="input-minimal flex items-center justify-center w-full sm:w-auto px-4 hover:bg-muted/80 transition-colors"
-              title="Toggle Sort Order"
-            >
+            <button onClick={() => setFilters((prev) => ({ ...prev, sortOrder: prev.sortOrder === "desc" ? "asc" : "desc" }))} className="input-minimal flex items-center justify-center w-full sm:w-auto px-4 hover:bg-muted/80 transition-colors">
               {filters.sortOrder === "desc" ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
             </button>
           </div>
         </div>
 
-        {/* Add/Edit Form */}
+        {/* Add/Edit Form - 🇳🇵 NEPAL OPTIMIZED */}
         {showForm && (
           <form onSubmit={handleSubmit} className="bg-card border border-border rounded-xl p-6 space-y-5">
             <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
@@ -537,213 +439,96 @@ const BloodCamps = () => {
             </h2>
 
             <div className="grid md:grid-cols-2 gap-4">
-              {/* Title */}
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-foreground mb-1.5">
-                  Camp Title <span className="text-destructive">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={formData.title}
-                  onChange={(e) => handleInputChange("title", e.target.value)}
-                  className={getInputClass("title")}
-                  placeholder="Enter camp title"
-                />
-                {errors.title && (
-                  <p className="text-destructive text-xs mt-1.5 flex items-center gap-1.5">
-                    <AlertCircle size={14} /> {errors.title}
-                  </p>
-                )}
+                <label className="block text-sm font-medium text-foreground mb-1.5">Camp Title <span className="text-destructive">*</span></label>
+                <input type="text" value={formData.title} onChange={(e) => handleInputChange("title", e.target.value)} className={getInputClass("title")} placeholder="e.g., Red Cross Blood Drive" />
+                {errors.title && <p className="text-destructive text-xs mt-1.5 flex items-center gap-1.5"><AlertCircle size={14} /> {errors.title}</p>}
               </div>
 
-              {/* Date */}
               <div>
-                <label className="block text-sm font-medium text-foreground mb-1.5">
-                  Date <span className="text-destructive">*</span>
-                </label>
-                <input
-                  type="date"
-                  value={formData.date}
-                  onChange={(e) => handleInputChange("date", e.target.value)}
-                  className={getInputClass("date")}
-                />
-                {errors.date && (
-                  <p className="text-destructive text-xs mt-1.5 flex items-center gap-1.5">
-                    <AlertCircle size={14} /> {errors.date}
-                  </p>
-                )}
+                <label className="block text-sm font-medium text-foreground mb-1.5">Date <span className="text-destructive">*</span></label>
+                <input type="date" value={formData.date} onChange={(e) => handleInputChange("date", e.target.value)} className={getInputClass("date")} />
+                {errors.date && <p className="text-destructive text-xs mt-1.5 flex items-center gap-1.5"><AlertCircle size={14} /> {errors.date}</p>}
               </div>
 
-              {/* Times */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-1.5">
-                    Start Time <span className="text-destructive">*</span>
-                  </label>
-                  <input
-                    type="time"
-                    value={formData.startTime}
-                    onChange={(e) => handleInputChange("startTime", e.target.value)}
-                    className={getInputClass("startTime")}
-                  />
-                  {errors.startTime && (
-                    <p className="text-destructive text-xs mt-1.5 flex items-center gap-1.5">
-                      <AlertCircle size={14} /> {errors.startTime}
-                    </p>
-                  )}
+                  <label className="block text-sm font-medium text-foreground mb-1.5">Start Time <span className="text-destructive">*</span></label>
+                  <input type="time" value={formData.startTime} onChange={(e) => handleInputChange("startTime", e.target.value)} className={getInputClass("startTime")} />
+                  {errors.startTime && <p className="text-destructive text-xs mt-1.5 flex items-center gap-1.5"><AlertCircle size={14} /> {errors.startTime}</p>}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-1.5">
-                    End Time <span className="text-destructive">*</span>
-                  </label>
-                  <input
-                    type="time"
-                    value={formData.endTime}
-                    onChange={(e) => handleInputChange("endTime", e.target.value)}
-                    className={getInputClass("endTime")}
-                  />
-                  {errors.endTime && (
-                    <p className="text-destructive text-xs mt-1.5 flex items-center gap-1.5">
-                      <AlertCircle size={14} /> {errors.endTime}
-                    </p>
-                  )}
+                  <label className="block text-sm font-medium text-foreground mb-1.5">End Time <span className="text-destructive">*</span></label>
+                  <input type="time" value={formData.endTime} onChange={(e) => handleInputChange("endTime", e.target.value)} className={getInputClass("endTime")} />
+                  {errors.endTime && <p className="text-destructive text-xs mt-1.5 flex items-center gap-1.5"><AlertCircle size={14} /> {errors.endTime}</p>}
                 </div>
               </div>
 
-              {/* Venue */}
               <div>
-                <label className="block text-sm font-medium text-foreground mb-1.5">
-                  Venue <span className="text-destructive">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={formData.venue}
-                  onChange={(e) => handleInputChange("venue", e.target.value)}
-                  className={getInputClass("venue")}
-                  placeholder="Enter venue name"
-                />
-                {errors.venue && (
-                  <p className="text-destructive text-xs mt-1.5 flex items-center gap-1.5">
-                    <AlertCircle size={14} /> {errors.venue}
-                  </p>
-                )}
+                <label className="block text-sm font-medium text-foreground mb-1.5">Venue / Tole <span className="text-destructive">*</span></label>
+                <input type="text" value={formData.venue} onChange={(e) => handleInputChange("venue", e.target.value)} className={getInputClass("venue")} placeholder="e.g., Devinagar Chowk" />
+                {errors.venue && <p className="text-destructive text-xs mt-1.5 flex items-center gap-1.5"><AlertCircle size={14} /> {errors.venue}</p>}
               </div>
 
-              {/* City */}
+              {/* 🇳 PROVINCE SELECTOR */}
               <div>
-                <label className="block text-sm font-medium text-foreground mb-1.5">
-                  City <span className="text-destructive">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={formData.city}
-                  onChange={(e) => handleInputChange("city", e.target.value)}
+                <label className="block text-sm font-medium text-foreground mb-1.5">Province <span className="text-destructive">*</span></label>
+                <select 
+                  value={formData.province} 
+                  onChange={(e) => {
+                    handleInputChange("province", e.target.value);
+                    handleInputChange("city", ""); // Reset city when province changes
+                  }} 
+                  className={getInputClass("province")}
+                >
+                  <option value="">Select Province</option>
+                  {Object.keys(NEPAL_LOCATIONS).map((prov) => (
+                    <option key={prov} value={prov}>{prov}</option>
+                  ))}
+                </select>
+                {errors.province && <p className="text-destructive text-xs mt-1.5 flex items-center gap-1.5"><AlertCircle size={14} /> {errors.province}</p>}
+              </div>
+
+              {/* 🇳🇵 CITY/DISTRICT SELECTOR (CASCADING) */}
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1.5">District / City <span className="text-destructive">*</span></label>
+                <select 
+                  value={formData.city} 
+                  onChange={(e) => handleInputChange("city", e.target.value)} 
                   className={getInputClass("city")}
-                  placeholder="Enter city"
-                />
-                {errors.city && (
-                  <p className="text-destructive text-xs mt-1.5 flex items-center gap-1.5">
-                    <AlertCircle size={14} /> {errors.city}
-                  </p>
-                )}
+                  disabled={!formData.province}
+                >
+                  <option value="">Select District/City</option>
+                  {formData.province && NEPAL_LOCATIONS[formData.province].map((city) => (
+                    <option key={city} value={city}>{city}</option>
+                  ))}
+                </select>
+                {errors.city && <p className="text-destructive text-xs mt-1.5 flex items-center gap-1.5"><AlertCircle size={14} /> {errors.city}</p>}
               </div>
 
-              {/* State */}
               <div>
-                <label className="block text-sm font-medium text-foreground mb-1.5">
-                  State <span className="text-destructive">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={formData.state}
-                  onChange={(e) => handleInputChange("state", e.target.value)}
-                  className={getInputClass("state")}
-                  placeholder="Enter state"
-                />
-                {errors.state && (
-                  <p className="text-destructive text-xs mt-1.5 flex items-center gap-1.5">
-                    <AlertCircle size={14} /> {errors.state}
-                  </p>
-                )}
+                <label className="block text-sm font-medium text-foreground mb-1.5">Pincode <span className="text-destructive">*</span></label>
+                <input type="text" value={formData.pincode} onChange={(e) => handleInputChange("pincode", e.target.value)} className={getInputClass("pincode")} placeholder="e.g., 32900" maxLength={5} />
+                {errors.pincode && <p className="text-destructive text-xs mt-1.5 flex items-center gap-1.5"><AlertCircle size={14} /> {errors.pincode}</p>}
               </div>
 
-              {/* Pincode */}
               <div>
-                <label className="block text-sm font-medium text-foreground mb-1.5">
-                  Pincode <span className="text-destructive">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={formData.pincode}
-                  onChange={(e) => handleInputChange("pincode", e.target.value)}
-                  className={getInputClass("pincode")}
-                  placeholder="6-digit pincode"
-                  maxLength={6}
-                />
-                {errors.pincode && (
-                  <p className="text-destructive text-xs mt-1.5 flex items-center gap-1.5">
-                    <AlertCircle size={14} /> {errors.pincode}
-                  </p>
-                )}
+                <label className="block text-sm font-medium text-foreground mb-1.5">Expected Donors <span className="text-destructive">*</span></label>
+                <input type="number" min="1" value={formData.expectedDonors} onChange={(e) => handleInputChange("expectedDonors", e.target.value)} className={getInputClass("expectedDonors")} placeholder="Number of donors" />
+                {errors.expectedDonors && <p className="text-destructive text-xs mt-1.5 flex items-center gap-1.5"><AlertCircle size={14} /> {errors.expectedDonors}</p>}
               </div>
 
-              {/* Expected Donors */}
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1.5">
-                  Expected Donors <span className="text-destructive">*</span>
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  value={formData.expectedDonors}
-                  onChange={(e) => handleInputChange("expectedDonors", e.target.value)}
-                  className={getInputClass("expectedDonors")}
-                  placeholder="Expected number of donors"
-                />
-                {errors.expectedDonors && (
-                  <p className="text-destructive text-xs mt-1.5 flex items-center gap-1.5">
-                    <AlertCircle size={14} /> {errors.expectedDonors}
-                  </p>
-                )}
-              </div>
-
-              {/* Description */}
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-foreground mb-1.5">
-                  Description
-                </label>
-                <textarea
-                  value={formData.description}
-                  onChange={(e) => handleInputChange("description", e.target.value)}
-                  rows={3}
-                  className="w-full px-4 py-2.5 bg-background border border-input rounded-[var(--radius)] text-foreground text-sm transition-colors focus:outline-none focus:border-ring focus:ring-[3px] focus:ring-ring/15 resize-none"
-                  placeholder="Enter camp description (optional)"
-                />
+                <label className="block text-sm font-medium text-foreground mb-1.5">Description</label>
+                <textarea value={formData.description} onChange={(e) => handleInputChange("description", e.target.value)} rows={3} className="w-full px-4 py-2.5 bg-background border border-input rounded-[var(--radius)] text-foreground text-sm transition-colors focus:outline-none focus:border-ring focus:ring-[3px] focus:ring-ring/15 resize-none" placeholder="Additional details about the camp..." />
               </div>
             </div>
 
-            {/* Form Actions */}
             <div className="flex gap-3 pt-4 border-t border-border">
               <button type="submit" disabled={submitting} className="btn-advanced flex items-center gap-2">
-                {submitting ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  editingCamp ? "Update Camp" : "Create Camp"
-                )}
+                {submitting ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving...</> : (editingCamp ? "Update Camp" : "Create Camp")}
               </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setShowForm(false);
-                  resetForm();
-                }}
-                className="btn-ghost"
-              >
-                Cancel
-              </button>
+              <button type="button" onClick={() => { setShowForm(false); resetForm(); }} className="btn-ghost">Cancel</button>
             </div>
           </form>
         )}
@@ -759,14 +544,10 @@ const BloodCamps = () => {
             <Droplet size={48} className="mx-auto text-muted-foreground/30 mb-4" />
             <h3 className="text-lg font-semibold text-foreground mb-2">No blood camps found</h3>
             <p className="text-sm text-muted-foreground mb-4 max-w-sm mx-auto">
-              {filters.status !== "all" || filters.search
-                ? "Try changing your filters"
-                : "Get started by creating your first blood camp"}
+              {filters.status !== "all" || filters.search ? "Try changing your filters" : "Get started by creating your first blood camp in Nepal"}
             </p>
             {!filters.search && filters.status === "all" && (
-              <button onClick={() => setShowForm(true)} className="btn-advanced">
-                Create Your First Camp
-              </button>
+              <button onClick={() => setShowForm(true)} className="btn-advanced">Create Your First Camp</button>
             )}
           </div>
         ) : (
@@ -774,92 +555,43 @@ const BloodCamps = () => {
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
               {camps.map((camp) => {
                 const availableActions = getAvailableActions(camp);
-
                 return (
-                  <div
-                    key={camp._id}
-                    className="bg-card border border-border rounded-xl p-5 hover:shadow-md transition-all duration-300 group"
-                  >
+                  <div key={camp._id} className="bg-card border border-border rounded-xl p-5 hover:shadow-md transition-all duration-300 group">
                     <div className="flex justify-between items-start mb-3">
-                      <h3 className="text-base font-semibold text-foreground line-clamp-2 flex-1 pr-2 group-hover:text-primary transition-colors">
-                        {camp.title}
-                      </h3>
+                      <h3 className="text-base font-semibold text-foreground line-clamp-2 flex-1 pr-2 group-hover:text-primary transition-colors">{camp.title}</h3>
                       <div className="flex gap-1 shrink-0">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleEdit(camp);
-                          }}
-                          className="text-muted-foreground hover:text-primary p-1.5 rounded-lg hover:bg-muted transition-colors"
-                          title="Edit camp"
-                        >
-                          <Edit3 size={16} />
-                        </button>
+                        <button onClick={(e) => { e.stopPropagation(); handleEdit(camp); }} className="text-muted-foreground hover:text-primary p-1.5 rounded-lg hover:bg-muted transition-colors" title="Edit camp"><Edit3 size={16} /></button>
                         {availableActions.length > 0 && (
                           <div className="relative">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setActionMenu(actionMenu === camp._id ? null : camp._id);
-                              }}
-                              className="text-muted-foreground hover:text-foreground p-1.5 rounded-lg hover:bg-muted transition-colors"
-                              title="More actions"
-                            >
-                              <MoreVertical size={16} />
-                            </button>
+                            <button onClick={(e) => { e.stopPropagation(); setActionMenu(actionMenu === camp._id ? null : camp._id); }} className="text-muted-foreground hover:text-foreground p-1.5 rounded-lg hover:bg-muted transition-colors" title="More actions"><MoreVertical size={16} /></button>
                             {actionMenu === camp._id && (
-                              <div
-                                onClick={(e) => e.stopPropagation()}
-                                className="absolute right-0 top-8 bg-card border border-border rounded-lg shadow-lg py-1 z-20 min-w-48"
-                              >
+                              <div onClick={(e) => e.stopPropagation()} className="absolute right-0 top-8 bg-card border border-border rounded-lg shadow-lg py-1 z-20 min-w-48">
                                 {availableActions.map((action) => (
-                                  <button
-                                    key={action.value}
-                                    onClick={() => updateCampStatus(camp._id, action.value)}
-                                    className={`w-full text-left px-4 py-2 text-sm hover:bg-muted transition-colors ${action.color}`}
-                                  >
-                                    {action.label}
-                                  </button>
+                                  <button key={action.value} onClick={() => updateCampStatus(camp._id, action.value)} className={`w-full text-left px-4 py-2 text-sm hover:bg-muted transition-colors ${action.color}`}>{action.label}</button>
                                 ))}
                               </div>
                             )}
                           </div>
                         )}
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDeleteCamp(camp._id);
-                          }}
-                          className="text-muted-foreground hover:text-destructive p-1.5 rounded-lg hover:bg-destructive/10 transition-colors"
-                          title="Delete camp"
-                        >
-                          <Trash2 size={16} />
-                        </button>
+                        <button onClick={(e) => { e.stopPropagation(); handleDeleteCamp(camp._id); }} className="text-muted-foreground hover:text-destructive p-1.5 rounded-lg hover:bg-destructive/10 transition-colors" title="Delete camp"><Trash2 size={16} /></button>
                       </div>
                     </div>
 
                     <div className="flex justify-between items-center mb-4">
                       <StatusBadge status={camp.status} />
-                      <span className="text-xs text-muted-foreground">
-                        {new Date(camp.date).toLocaleDateString()}
-                      </span>
+                      <span className="text-xs text-muted-foreground">{new Date(camp.date).toLocaleDateString()}</span>
                     </div>
 
-                    {camp.description && (
-                      <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
-                        {camp.description}
-                      </p>
-                    )}
+                    {camp.description && <p className="text-sm text-muted-foreground mb-4 line-clamp-2">{camp.description}</p>}
 
                     <div className="space-y-2 text-sm">
                       <div className="flex items-center text-foreground">
                         <Clock size={14} className="mr-2 text-muted-foreground shrink-0" />
-                        <span>
-                          {camp.time.start} - {camp.time.end}
-                        </span>
+                        <span>{camp.time.start} - {camp.time.end}</span>
                       </div>
                       <div className="flex items-start text-foreground">
                         <MapPin size={14} className="mr-2 text-muted-foreground shrink-0 mt-0.5" />
+                        {/* 🇳🇵 DISPLAYING NEPAL LOCATION FORMAT */}
                         <span className="line-clamp-2">
                           {camp.location.venue}, {camp.location.city}, {camp.location.state} - {camp.location.pincode}
                         </span>
@@ -883,23 +615,9 @@ const BloodCamps = () => {
             {/* Pagination */}
             {pagination.totalPages > 1 && (
               <div className="flex justify-center items-center gap-4 pt-4">
-                <button
-                  onClick={() => fetchCamps(pagination.currentPage - 1)}
-                  disabled={!pagination.hasPrev}
-                  className="btn-ghost disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Previous
-                </button>
-                <span className="text-sm text-muted-foreground font-medium">
-                  Page {pagination.currentPage} of {pagination.totalPages}
-                </span>
-                <button
-                  onClick={() => fetchCamps(pagination.currentPage + 1)}
-                  disabled={!pagination.hasNext}
-                  className="btn-ghost disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Next
-                </button>
+                <button onClick={() => fetchCamps(pagination.currentPage - 1)} disabled={!pagination.hasPrev} className="btn-ghost disabled:opacity-50 disabled:cursor-not-allowed">Previous</button>
+                <span className="text-sm text-muted-foreground font-medium">Page {pagination.currentPage} of {pagination.totalPages}</span>
+                <button onClick={() => fetchCamps(pagination.currentPage + 1)} disabled={!pagination.hasNext} className="btn-ghost disabled:opacity-50 disabled:cursor-not-allowed">Next</button>
               </div>
             )}
           </>
