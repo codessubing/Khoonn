@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { toast } from "react-hot-toast";
 import {
   Building2, MapPin, Phone, CalendarDays, Activity, Droplet,
   Clock, History, Users, AlertTriangle, CheckCircle, TrendingUp,
-  RefreshCw, Loader2,
+  RefreshCw, Loader2, Navigation, Search, User, X, ChevronDown, ChevronUp
 } from "lucide-react";
 
 // ✅ PRODUCTION FIX: Dynamic API base URL
@@ -26,7 +27,18 @@ const HospitalDashboard = () => {
     totalRequests: 0,
   });
 
-  // ✅ FIXED: Uses dynamic API_BASE_URL instead of VITE_API_URL
+  // ✅ NEW: Emergency Donor Search State
+  const [emergencySearch, setEmergencySearch] = useState({
+    isOpen: false,
+    loading: false,
+    bloodType: "O+",
+    radiusKm: 5,
+    lat: null,
+    lng: null,
+    results: [],
+    expandedDonor: null
+  });
+
   const FACILITY_API = `${API_BASE_URL}/api/facility`;
   const HOSPITAL_API = `${API_BASE_URL}/api/hospital`;
 
@@ -39,23 +51,17 @@ const HospitalDashboard = () => {
           return;
         }
 
-        // ✅ FIXED: Absolute URL pointing to Render backend
         const profileRes = await fetch(`${FACILITY_API}/profile`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
-        if (!profileRes.ok) {
-          throw new Error("Failed to fetch hospital data");
-        }
+        if (!profileRes.ok) throw new Error("Failed to fetch hospital data");
 
         const profileData = await profileRes.json();
         const h = profileData.hospital || profileData.facility || profileData;
 
-        if (!h) {
-          throw new Error("No hospital data found in response");
-        }
+        if (!h) throw new Error("No hospital data found in response");
 
-        // ✅ FIXED: Absolute URLs pointing to Render backend
         const [stockRes, requestsRes] = await Promise.all([
           axios.get(`${HOSPITAL_API}/blood/stock`, { headers: { Authorization: `Bearer ${token}` } }),
           axios.get(`${HOSPITAL_API}/blood/requests`, { headers: { Authorization: `Bearer ${token}` } }),
@@ -112,6 +118,107 @@ const HospitalDashboard = () => {
 
     fetchHospitalData();
   }, [navigate]);
+
+  // ✅ NEW: Geolocation Capture for Emergency Search
+  const handleCaptureLocation = () => {
+    if (!navigator.geolocation) {
+      toast.error("Geolocation not supported by your browser");
+      return;
+    }
+
+    setEmergencySearch(prev => ({ ...prev, loading: true }));
+    
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setEmergencySearch(prev => ({
+          ...prev,
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+          loading: false
+        }));
+        toast.success("📍 Hospital location captured!");
+      },
+      (err) => {
+        let msg = "Unable to get location";
+        if (err.code === 1) msg = "Permission denied. Enable GPS in browser settings.";
+        else if (err.code === 2) msg = "Location unavailable. Try again.";
+        else if (err.code === 3) msg = "Request timed out.";
+        toast.error(msg);
+        setEmergencySearch(prev => ({ ...prev, loading: false }));
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 }
+    );
+  };
+
+  // ✅ UPDATED: Robust Emergency Search with Detailed Error Logging
+  const handleEmergencySearch = async () => {
+    if (!emergencySearch.lat || !emergencySearch.lng) {
+      toast.error("Please capture hospital location first");
+      return;
+    }
+
+    // 1. Get and TRIM the token (whitespace causes silent 401s)
+    const rawToken = localStorage.getItem("token");
+    const token = rawToken ? rawToken.trim() : null;
+
+    if (!token) {
+      console.error("❌ No token found in localStorage");
+      toast.error("Authentication error. Please log out and log back in.");
+      navigate("/login", { replace: true });
+      return;
+    }
+
+    setEmergencySearch(prev => ({ ...prev, loading: true }));
+
+    try {
+      // 2. Send request with EXPLICIT Authorization header
+      const res = await axios.post(
+        `${API_BASE_URL}/api/emergency/find-donors`,
+        {
+          bloodType: emergencySearch.bloodType,
+          hospitalLat: emergencySearch.lat,
+          hospitalLng: emergencySearch.lng,
+          radiusKm: parseInt(emergencySearch.radiusKm)
+        },
+        { 
+          headers: { 
+            "Authorization": `Bearer ${token}`, // Must be "Bearer <space> token"
+            "Content-Type": "application/json"
+          } 
+        }
+      );
+
+      setEmergencySearch(prev => ({
+        ...prev,
+        results: res.data.donors || [],
+        loading: false
+      }));
+
+      // ✅ FIXED: react-hot-toast doesn't have .warning(), using default toast() with an emoji instead
+      if (res.data.totalFound === 0) {
+        toast(`No eligible ${emergencySearch.bloodType} donors found within ${emergencySearch.radiusKm}km`, { icon: '⚠️' });
+      } else {
+        toast.success(`✅ Found ${res.data.totalFound} eligible donors!`);
+      }
+    } catch (err) {
+      // ✅ IMPROVED ERROR LOGGING: Extracts status code and server message
+      const status = err.response?.status;
+      const message = err.response?.data?.message || err.message;
+      
+      console.error(`🚨 Emergency Search Failed [${status}]:`, message);
+      
+      if (status === 401) {
+        toast.error("Session expired or invalid. Redirecting to login...");
+        localStorage.removeItem("token");
+        navigate("/login", { replace: true });
+      } else if (status === 403) {
+        toast.error("Access denied. Hospital role required.");
+      } else {
+        toast.error(message || "Search failed. Please try again.");
+      }
+      setEmergencySearch(prev => ({ ...prev, loading: false }));
+    }
+  };
 
   const getLoginHistory = () => {
     if (!hospital?.history) return [];
@@ -210,6 +317,139 @@ const HospitalDashboard = () => {
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">Hospital Dashboard</h1>
           <p className="text-sm text-muted-foreground mt-1">Welcome back! Here's your hospital overview.</p>
+        </div>
+
+        {/* ✅ NEW: Emergency Donor Matcher Card - High Priority Placement */}
+        <div className="bg-gradient-to-br from-destructive/5 to-destructive/10 border border-destructive/20 rounded-xl p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-lg bg-destructive/10">
+                <Navigation className="w-5 h-5 text-destructive" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-foreground">Emergency Donor Matcher</h3>
+                <p className="text-xs text-muted-foreground">Find eligible donors near your hospital in real-time</p>
+              </div>
+            </div>
+            <button
+              onClick={() => setEmergencySearch(prev => ({ ...prev, isOpen: !prev.isOpen }))}
+              className="p-2 rounded-lg hover:bg-destructive/10 transition-colors text-muted-foreground hover:text-foreground"
+            >
+              {emergencySearch.isOpen ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+            </button>
+          </div>
+
+          {emergencySearch.isOpen && (
+            <div className="space-y-4 pt-2 border-t border-destructive/10">
+              {/* Search Controls */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-xs font-medium text-muted-foreground mb-1.5">Blood Type Needed</label>
+                  <select
+                    value={emergencySearch.bloodType}
+                    onChange={(e) => setEmergencySearch(prev => ({ ...prev, bloodType: e.target.value }))}
+                    className="input-minimal text-sm"
+                  >
+                    {["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"].map(t => (
+                      <option key={t} value={t}>{t}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-muted-foreground mb-1.5">Search Radius</label>
+                  <select
+                    value={emergencySearch.radiusKm}
+                    onChange={(e) => setEmergencySearch(prev => ({ ...prev, radiusKm: e.target.value }))}
+                    className="input-minimal text-sm"
+                  >
+                    <option value={3}>Within 3 km</option>
+                    <option value={5}>Within 5 km</option>
+                    <option value={10}>Within 10 km</option>
+                    <option value={25}>Within 25 km</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-muted-foreground mb-1.5">Hospital Location</label>
+                  <button
+                    onClick={handleCaptureLocation}
+                    disabled={emergencySearch.loading}
+                    className="btn-ghost w-full justify-center gap-2 text-sm"
+                  >
+                    {emergencySearch.lat ? (
+                      <>
+                        <CheckCircle size={14} className="text-green-600" />
+                        {emergencySearch.lat.toFixed(4)}, {emergencySearch.lng.toFixed(4)}
+                      </>
+                    ) : (
+                      <>
+                        <MapPin size={14} />
+                        Get Current Location
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              <button
+                onClick={handleEmergencySearch}
+                disabled={emergencySearch.loading || !emergencySearch.lat}
+                className="btn-advanced w-full justify-center gap-2 bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+              >
+                {emergencySearch.loading ? (
+                  <><Loader2 className="w-4 h-4 animate-spin" /> Searching...</>
+                ) : (
+                  <><Search className="w-4 h-4" /> Find Nearby Donors</>
+                )}
+              </button>
+
+              {/* Results */}
+              {emergencySearch.results.length > 0 && (
+                <div className="space-y-3 pt-2">
+                  <p className="text-xs font-medium text-muted-foreground">
+                    Found {emergencySearch.results.length} eligible donor(s):
+                  </p>
+                  {emergencySearch.results.map((donor) => (
+                    <div key={donor._id} className="bg-card border border-border rounded-lg p-4">
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                            <User className="w-5 h-5 text-primary" />
+                          </div>
+                          <div>
+                            <p className="font-semibold text-sm text-foreground">{donor.fullName}</p>
+                            <p className="text-xs text-muted-foreground">
+                               {donor.distanceKm}km away • {donor.city}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              Last donated: {donor.lastDonationDate 
+                                ? new Date(donor.lastDonationDate).toLocaleDateString() 
+                                : "Never"}
+                            </p>
+                          </div>
+                        </div>
+                        <a
+                          href={`tel:${donor.phone}`}
+                          className="btn-advanced text-xs py-2 px-4 shrink-0 ml-2"
+                        >
+                          <Phone size={14} className="mr-1 inline" /> Call
+                        </a>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {emergencySearch.results.length === 0 && emergencySearch.lat && !emergencySearch.loading && (
+                <div className="text-center py-6 text-muted-foreground">
+                  <AlertTriangle className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">No eligible donors found in this radius</p>
+                  <p className="text-xs mt-1">Try increasing the search radius or check different blood types</p>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Hospital Profile Card */}

@@ -15,6 +15,15 @@ export const register = async (req, res) => {
       return res.status(400).json({ success: false, message: "Role is required" });
     }
 
+    // 🧹 SAFETY FILTER: Prevent frontend from saving incomplete GeoJSON objects
+    if (req.body.location) {
+      const loc = req.body.location;
+      if (loc.type === "Point" && (!loc.coordinates || loc.coordinates.length !== 2)) {
+        delete req.body.location;
+        delete req.body.lastLocationUpdate;
+      }
+    }
+
     let user;
 
     if (role === "donor") {
@@ -112,6 +121,8 @@ export const login = async (req, res) => {
       });
       if (user.history.length > 50) user.history = user.history.slice(-50);
     }
+    
+    // 💡 Note: Under the hood, Mongoose uses 'updateOne' here to save changes to the DB
     await user.save();
 
     let redirect = "/";
@@ -138,7 +149,6 @@ export const login = async (req, res) => {
  */
 export const getProfile = async (req, res) => {
   try {
-    // ✅ FIX: Safely grab the ID whether the middleware named it 'id' or '_id'
     const userId = req.user._id || req.user.id;
     const userRole = req.user.role;
 

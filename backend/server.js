@@ -1,21 +1,28 @@
+// ✅ 1. Load dotenv FIRST (before any other imports)
+import dotenv from "dotenv";
+dotenv.config();
+
+// ✅ 2. Now import everything else
 import express from "express";
 import mongoose from "mongoose";
-import dotenv from "dotenv";
 import cors from "cors";
 
-// 📦 Swagger
+//  Swagger
 import { swaggerUi, swaggerDocs } from "./openapi/index.js";
 
-// 🧩 Routes (All imports at the top)
+import emergencyRoutes from "./routes/emergency.js";
+
+// 🧩 Routes
 import authRoutes from "./routes/authRoutes.js";
 import donorRoutes from "./routes/donorRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import facilityRoutes from "./routes/facilityRoutes.js";
 import bloodLabRoutes from "./routes/bloodLabRoutes.js";
 import hospitalRoutes from "./routes/hospitalRoutes.js";
-import contactRoutes from "./routes/contactRoutes.js"; // ✅ Already imported
+import contactRoutes from "./routes/contactRoutes.js";
 
-dotenv.config();
+import bloodAvailabilityRoutes from "./routes/bloodAvailability.js";
+
 const app = express();
 
 app.use(express.json());
@@ -39,8 +46,9 @@ app.use("/api/facility", facilityRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/blood-lab", bloodLabRoutes);
 app.use("/api/hospital", hospitalRoutes);
-// ✅ FIX: Register the contact route here!
 app.use("/api/contact", contactRoutes); 
+app.use("/api/emergency", emergencyRoutes);
+app.use("/api/blood", bloodAvailabilityRoutes);
 
 // 🗄️ DB Connection (WITH IPv4 FIX)
 mongoose
@@ -53,5 +61,11 @@ mongoose
     console.error("MongoDB Error ❌", err.message);
   });
 
+// ✅ Startup validation to catch missing secrets immediately
+if (!process.env.JWT_SECRET) {
+  console.error(" FATAL: JWT_SECRET is missing from .env file!");
+  process.exit(1);
+}
+
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT} `));
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
