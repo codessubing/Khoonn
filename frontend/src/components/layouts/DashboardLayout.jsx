@@ -1,9 +1,10 @@
-import { useState, useEffect } from "react";
+// frontend/src/components/layouts/DashboardLayout.jsx
+import { useState, useEffect, useRef } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import {
   LogOut, Menu, X, User, BarChart3, CheckCircle, Droplet,
   ClipboardList, History, Building, Shield, Calendar, TestTube,
-  ChevronLeft, ChevronRight, Loader2, ClipboardPlus, Ambulance, Map
+  ChevronLeft, ChevronRight, Loader2, ClipboardPlus, Ambulance, Map, Camera, Settings
 } from "lucide-react";
 
 // ✅ PRODUCTION FIX: Dynamic API base URL
@@ -11,19 +12,121 @@ const API_BASE_URL = import.meta.env.PROD
   ? "https://khoonn-backend.onrender.com/api"
   : "http://localhost:5000/api";
 
+// ✅ NEW: UserProfileDropdown Component
+const UserProfileDropdown = ({ userData, onLogout, onChangeAvatar, isOpen, toggleOpen, dropdownRef }) => {
+  const handleAvatarClick = (e) => {
+    e.stopPropagation(); // Prevent closing dropdown immediately
+    toggleOpen();
+  };
+
+  const handleLogoutClick = (e) => {
+    e.stopPropagation();
+    onLogout();
+  };
+
+  const handleChangeAvatar = (e) => {
+    e.stopPropagation();
+    onChangeAvatar();
+    // Optionally close the dropdown after clicking change avatar
+    // toggleOpen(); 
+  };
+
+  // Close dropdown if clicked outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        // Only close if the click wasn't on the avatar button itself
+        if (!event.target.closest('[aria-label="User menu"]')) {
+          toggleOpen(false);
+        }
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [toggleOpen, dropdownRef]);
+
+  return (
+    <div className="relative" ref={dropdownRef}>
+      {/* Avatar + Name Button */}
+      <button
+        onClick={handleAvatarClick}
+        className="flex items-center gap-2 group"
+        aria-label="User menu"
+      >
+        <div className="relative">
+          {/* Avatar */}
+          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center text-white font-semibold text-sm sm:text-base shadow-md group-hover:shadow-lg transition-shadow">
+            {userData?.name?.charAt(0)?.toUpperCase() ||
+              userData?.fullName?.charAt(0)?.toUpperCase() ||
+              userData?.email?.charAt(0)?.toUpperCase() ||
+              "U"}
+          </div>
+          {/* Camera icon overlay for change avatar */}
+          <button
+            onClick={handleChangeAvatar}
+            className="absolute -bottom-1 -right-1 w-5 h-5 bg-white rounded-full flex items-center justify-center border-2 border-white shadow-md hover:bg-gray-100 transition-colors"
+            aria-label="Change avatar"
+          >
+            <Camera size={10} className="text-red-600" />
+          </button>
+        </div>
+
+        <div className="hidden sm:block text-left">
+          <p className="text-sm font-medium text-foreground">{userData?.name || userData?.fullName || "User"}</p>
+          <p className="text-xs text-muted-foreground capitalize">{userData?.role || "Donor"}</p>
+        </div>
+
+        {/* Dropdown Arrow */}
+        <span className="w-5 h-5 flex items-center justify-center text-muted-foreground group-hover:text-foreground transition-colors">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </span>
+      </button>
+
+      {/* Dropdown Menu */}
+      {isOpen && (
+        <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-border overflow-hidden z-50">
+          <div className="py-1">
+            <button
+              onClick={handleChangeAvatar}
+              className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 w-full text-left"
+            >
+              <Camera size={16} className="text-gray-500" />
+              Change Avatar
+            </button>
+            <button
+              onClick={handleLogoutClick}
+              className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 w-full text-left"
+            >
+              <LogOut size={16} className="text-gray-500" />
+              Logout
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const DashboardLayout = ({ userRole = "donor" }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [userData, setUserData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  // ✅ NEW: State for user profile dropdown
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null); // Ref for dropdown container
 
   const navigate = useNavigate();
   const location = useLocation();
 
+  // ✅ BRAND UPDATE: Consistent "KyuuKhoonn" branding in menu titles
   const menuConfig = {
     donor: {
-      title: "Blood Donor Portal",
-      subtitle: "Be a Hero, Save Lives",
+      title: "KyuuKhoonn Donor Portal", // ✅ Branding Updated
+      subtitle: "Be a Hero, Save Lives", // ✅ Keep this tagline
       shortTitle: "Donor",
       icon: User,
       items: [
@@ -35,8 +138,8 @@ const DashboardLayout = ({ userRole = "donor" }) => {
       ],
     },
     hospital: {
-      title: "Hospital Management",
-      subtitle: "Blood Request & Inventory",
+      title: "KyuuKhoonn Hospital Management", // ✅ Branding Updated
+      subtitle: "Blood Request & Inventory", // ✅ Keep this tagline
       shortTitle: "Hospital",
       icon: Building,
       items: [
@@ -49,8 +152,8 @@ const DashboardLayout = ({ userRole = "donor" }) => {
       ],
     },
     blood_lab: {
-      title: "Blood Lab Center",
-      subtitle: "Testing & Quality Control",
+      title: "KyuuKhoonn Lab Center", // ✅ Branding Updated
+      subtitle: "Testing & Quality Control", // ✅ Keep this tagline
       shortTitle: "Lab",
       icon: TestTube,
       items: [
@@ -64,8 +167,8 @@ const DashboardLayout = ({ userRole = "donor" }) => {
       ],
     },
     admin: {
-      title: "BBMS Admin Panel",
-      subtitle: "System Administration",
+      title: "KyuuKhoonn Admin Panel", // ✅ Branding Updated
+      subtitle: "System Administration", // ✅ Keep this tagline
       shortTitle: "Admin",
       icon: Shield,
       items: [
@@ -142,16 +245,31 @@ const DashboardLayout = ({ userRole = "donor" }) => {
 
   const normalizedRole = userRole?.toLowerCase().replace("-", "_");
   const config = menuConfig[normalizedRole] || {
-    title: "Dashboard",
-    subtitle: "Welcome to the Blood Bank System",
+    title: "KyuuKhoonn Dashboard", // ✅ Branding Updated
+    subtitle: "Welcome to KyuuKhoonn", // ✅ Branding Updated
     shortTitle: "App",
     icon: BarChart3,
     items: [],
   };
 
+  // ✅ NEW: Toggle function for dropdown
+  const toggleDropdown = (open = undefined) => {
+    setIsDropdownOpen(prev => open !== undefined ? open : !prev);
+  };
+
   const handleLogout = () => {
     localStorage.removeItem("token");
     navigate("/login");
+  };
+
+  // ✅ NEW: Function to handle avatar change
+  const handleChangeAvatar = () => {
+    // Close the dropdown
+    toggleDropdown(false);
+    // Trigger avatar change logic (e.g., open modal, file picker)
+    alert("Avatar change feature will open camera/gallery modal");
+    // Example: openModal('avatarUpload');
+    // Example: triggerFilePicker();
   };
 
   // ✅ FIX: Prevent base routes (e.g., "/donor") from matching sub-routes (e.g., "/donor/profile")
@@ -194,6 +312,7 @@ const DashboardLayout = ({ userRole = "donor" }) => {
               <ClipboardPlus size={20} className="text-primary" />
             </div>
             <div className="hidden sm:block">
+              {/* ✅ Use consistent branding from config */}
               <h1 className="text-lg sm:text-xl font-bold tracking-tight text-foreground">
                 {config.title}
               </h1>
@@ -208,29 +327,15 @@ const DashboardLayout = ({ userRole = "donor" }) => {
         </div>
 
         <div className="flex items-center gap-2 sm:gap-4">
-          <div className="flex items-center gap-2 sm:gap-3">
-            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-primary-foreground font-semibold bg-primary text-sm sm:text-base shrink-0">
-              {userData?.name?.charAt(0)?.toUpperCase() ||
-                userData?.fullName?.charAt(0)?.toUpperCase() ||
-                userData?.email?.charAt(0)?.toUpperCase() ||
-                "U"}
-            </div>
-            <div className="hidden sm:block text-right">
-              <span className="font-medium block text-sm text-foreground">
-                {userData?.name || userData?.fullName || "User"}
-              </span>
-              <span className="text-xs capitalize text-muted-foreground">
-                {userRole?.replace("_", " ")}
-              </span>
-            </div>
-          </div>
-          <button
-            onClick={handleLogout}
-            className="p-2 rounded-lg hover:bg-muted transition-colors hidden sm:block text-muted-foreground hover:text-foreground"
-            title="Logout"
-          >
-            <LogOut size={20} />
-          </button>
+          {/* ✅ REPLACED: Old user profile div with the new dropdown component */}
+          <UserProfileDropdown
+            userData={userData}
+            onLogout={handleLogout}
+            onChangeAvatar={handleChangeAvatar}
+            isOpen={isDropdownOpen}
+            toggleOpen={toggleDropdown}
+            dropdownRef={dropdownRef}
+          />
         </div>
       </header>
 
@@ -304,6 +409,7 @@ const DashboardLayout = ({ userRole = "donor" }) => {
           {!sidebarCollapsed && (
             <div className="p-4 border-t border-border">
               <div className="p-3 rounded-lg text-center bg-muted">
+                {/* ✅ Final confirmation of branding in sidebar footer */}
                 <p className="text-sm font-semibold text-foreground">KyuuKhoonn</p>
                 <p className="text-xs mt-1 text-muted-foreground">Save Lives, Donate Blood</p>
               </div>
