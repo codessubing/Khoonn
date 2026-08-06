@@ -154,6 +154,19 @@ const DashboardLayout = ({ userRole = "donor" }) => {
     navigate("/login");
   };
 
+  // ✅ FIX: Prevent base routes (e.g., "/donor") from matching sub-routes (e.g., "/donor/profile")
+  const isPathActive = (targetPath) => {
+    if (location.pathname === targetPath) return true;
+    if (location.pathname === targetPath + "/") return true;
+    
+    const remainder = location.pathname.slice(targetPath.length);
+    const isBaseRoute = targetPath.split("/").length === 2; // e.g., "/donor", "/hospital"
+    
+    if (isBaseRoute) return false; // Base routes should ONLY match exactly
+    
+    return remainder.startsWith("/"); // Allow sub-routes for deeper paths like "/admin/facilities/123"
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -255,7 +268,8 @@ const DashboardLayout = ({ userRole = "donor" }) => {
             <div className="flex flex-col gap-1">
               {config.items.map((item) => {
                 const Icon = item.icon;
-                const isActive = location.pathname === item.path || location.pathname.startsWith(item.path + "/");
+                // ✅ UPDATED: Use the safe helper function
+                const isActive = isPathActive(item.path);
                 return (
                   <button
                     key={item.path}
@@ -297,7 +311,6 @@ const DashboardLayout = ({ userRole = "donor" }) => {
           )}
         </aside>
 
-        {/* ✅ Increased pb-20 on mobile to prevent content from hiding behind bottom nav */}
         <main className="flex-1 min-h-[calc(100vh-64px)] pb-20 lg:pb-0">
           <div className="h-full overflow-auto p-4 sm:p-6">
             <Outlet context={{ userData }} />
@@ -313,12 +326,13 @@ const DashboardLayout = ({ userRole = "donor" }) => {
         />
       )}
 
-      {/* ✅ MOBILE BOTTOM NAVIGATION (Smart & Responsive) */}
+      {/* MOBILE BOTTOM NAVIGATION */}
       <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-md border-t border-border z-40 pb-[env(safe-area-inset-bottom)]">
         <div className="flex justify-around items-center h-16">
           {config.items.slice(0, 4).map((item) => {
             const Icon = item.icon;
-            const isActive = location.pathname === item.path || location.pathname.startsWith(item.path + "/");
+            // ✅ UPDATED: Use the safe helper function
+            const isActive = isPathActive(item.path);
             return (
               <button
                 key={item.path}
@@ -340,7 +354,6 @@ const DashboardLayout = ({ userRole = "donor" }) => {
             );
           })}
           
-          {/* "More" button if there are more than 4 items */}
           {config.items.length > 4 && (
             <button
               onClick={() => setSidebarOpen(true)}
