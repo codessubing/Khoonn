@@ -1,3 +1,4 @@
+// backend/models/bloodCampModel.js
 import mongoose from "mongoose";
 
 const bloodCampSchema = new mongoose.Schema(
@@ -6,7 +7,7 @@ const bloodCampSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Facility",
       required: [true, "Organizing facility is required"],
-      index: true, // ✅ Index for faster queries when fetching camps by facility
+      index: true,
     },
     title: {
       type: String,
@@ -22,7 +23,7 @@ const bloodCampSchema = new mongoose.Schema(
     date: {
       type: Date,
       required: [true, "Camp date is required"],
-      index: true, // ✅ Index for faster sorting/filtering by date
+      index: true,
     },
     time: {
       start: { type: String, required: [true, "Start time is required"] },
@@ -34,7 +35,6 @@ const bloodCampSchema = new mongoose.Schema(
       state: { type: String, required: [true, "Province/State is required"], trim: true },
       pincode: {
         type: String,
-        // ✅ FIXED: Updated to 5-digit regex for Nepal postal codes (e.g., 32900)
         match: [/^[0-9]{5}$/, "Please enter a valid 5-digit postal code"],
         trim: true,
       },
@@ -49,6 +49,26 @@ const bloodCampSchema = new mongoose.Schema(
       default: 0,
       min: [0, "Actual donors cannot be negative"] 
     },
+    // ✅ UPDATED: Enhanced registeredDonors schema for donation tracking
+    registeredDonors: [
+      {
+        donor: { 
+          type: mongoose.Schema.Types.ObjectId, 
+          ref: "Donor" 
+        },
+        registeredAt: { 
+          type: Date, 
+          default: Date.now 
+        },
+        qrToken: { type: String, required: true },       // Unique token for QR generation
+        checkedIn: { type: Boolean, default: false },    // Tracks if donor has arrived
+        checkInTime: { type: Date },                     // When donor checked in
+        // ✅ NEW: Donation tracking fields
+        donationRecorded: { type: Boolean, default: false },     // Whether donation was completed
+        donationRecordedAt: { type: Date },                     // When donation was recorded
+        unitsDonated: { type: Number, default: 0 }              // How many units were donated
+      },
+    ],
     status: {
       type: String,
       enum: {
@@ -56,12 +76,11 @@ const bloodCampSchema = new mongoose.Schema(
         message: "{VALUE} is not a valid camp status"
       },
       default: "Upcoming",
-      index: true, // ✅ Index for faster filtering by status
+      index: true,
     },
   },
   { 
     timestamps: true,
-    // ✅ SECURITY & CLEANLINESS: Automatically strip __v from JSON responses
     toJSON: { 
       transform: function (doc, ret) {
         delete ret.__v;
@@ -77,7 +96,7 @@ const bloodCampSchema = new mongoose.Schema(
   }
 );
 
-// Optional: Add a pre-save hook to ensure end time is after start time (if stored as comparable strings like "09:00")
+// Validate time range
 bloodCampSchema.pre("save", function(next) {
   if (this.time && this.time.start && this.time.end) {
     if (this.time.start >= this.time.end) {
@@ -86,5 +105,9 @@ bloodCampSchema.pre("save", function(next) {
   }
   next();
 });
+
+// Performance indexes
+bloodCampSchema.index({ hospital: 1, date: -1 });
+bloodCampSchema.index({ status: 1, date: 1 });
 
 export default mongoose.model("BloodCamp", bloodCampSchema);

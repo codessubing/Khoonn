@@ -1,5 +1,6 @@
+// frontend/src/pages/hospital/HospitalDashboard.jsx
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom"; // ✅ Added Link
 import axios from "axios";
 import { toast } from "react-hot-toast";
 import {
@@ -18,6 +19,7 @@ const HospitalDashboard = () => {
   const [hospital, setHospital] = useState(null);
   const [bloodStock, setBloodStock] = useState([]);
   const [requests, setRequests] = useState([]);
+  const [upcomingCamps, setUpcomingCamps] = useState([]); // ✅ NEW: For Transit Link
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
     totalUnits: 0,
@@ -41,6 +43,7 @@ const HospitalDashboard = () => {
 
   const FACILITY_API = `${API_BASE_URL}/api/facility`;
   const HOSPITAL_API = `${API_BASE_URL}/api/hospital`;
+  const CAMPS_API = `${API_BASE_URL}/api/camps`; // ✅ NEW: Camps endpoint
 
   useEffect(() => {
     const fetchHospitalData = async () => {
@@ -62,13 +65,16 @@ const HospitalDashboard = () => {
 
         if (!h) throw new Error("No hospital data found in response");
 
-        const [stockRes, requestsRes] = await Promise.all([
+        // ✅ Fetch all data in parallel including upcoming camps
+        const [stockRes, requestsRes, campsRes] = await Promise.all([
           axios.get(`${HOSPITAL_API}/blood/stock`, { headers: { Authorization: `Bearer ${token}` } }),
           axios.get(`${HOSPITAL_API}/blood/requests`, { headers: { Authorization: `Bearer ${token}` } }),
+          axios.get(`${CAMPS_API}`, { headers: { Authorization: `Bearer ${token}` } }) // Public endpoint, no auth needed usually
         ]);
 
         const stockData = stockRes.data.data || [];
         const requestsData = requestsRes.data.data || [];
+        const campsData = campsRes.data.camps || campsRes.data.data || []; // ✅ Get upcoming camps
 
         const totalUnits = stockData.reduce((sum, item) => sum + item.quantity, 0);
         const lowStock = stockData.filter((item) => item.quantity < 5).length;
@@ -98,6 +104,7 @@ const HospitalDashboard = () => {
 
         setBloodStock(stockData);
         setRequests(requestsData);
+        setUpcomingCamps(campsData.slice(0, 3)); // ✅ Store top 3 upcoming camps
         setStats({
           totalUnits,
           lowStock,
@@ -157,7 +164,6 @@ const HospitalDashboard = () => {
       return;
     }
 
-    // 1. Get and TRIM the token (whitespace causes silent 401s)
     const rawToken = localStorage.getItem("token");
     const token = rawToken ? rawToken.trim() : null;
 
@@ -171,7 +177,6 @@ const HospitalDashboard = () => {
     setEmergencySearch(prev => ({ ...prev, loading: true }));
 
     try {
-      // 2. Send request with EXPLICIT Authorization header
       const res = await axios.post(
         `${API_BASE_URL}/api/emergency/find-donors`,
         {
@@ -182,7 +187,7 @@ const HospitalDashboard = () => {
         },
         { 
           headers: { 
-            "Authorization": `Bearer ${token}`, // Must be "Bearer <space> token"
+            "Authorization": `Bearer ${token}`,
             "Content-Type": "application/json"
           } 
         }
@@ -194,14 +199,12 @@ const HospitalDashboard = () => {
         loading: false
       }));
 
-      // ✅ FIXED: react-hot-toast doesn't have .warning(), using default toast() with an emoji instead
       if (res.data.totalFound === 0) {
         toast(`No eligible ${emergencySearch.bloodType} donors found within ${emergencySearch.radiusKm}km`, { icon: '⚠️' });
       } else {
         toast.success(`✅ Found ${res.data.totalFound} eligible donors!`);
       }
     } catch (err) {
-      // ✅ IMPROVED ERROR LOGGING: Extracts status code and server message
       const status = err.response?.status;
       const message = err.response?.data?.message || err.message;
       
@@ -319,7 +322,7 @@ const HospitalDashboard = () => {
           <p className="text-sm text-muted-foreground mt-1">Welcome back! Here's your hospital overview.</p>
         </div>
 
-        {/* ✅ NEW: Emergency Donor Matcher Card - High Priority Placement */}
+        {/* ✅ UPDATED: Emergency Donor Matcher + Live Transit Quick Access */}
         <div className="bg-gradient-to-br from-destructive/5 to-destructive/10 border border-destructive/20 rounded-xl p-6">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
@@ -392,17 +395,30 @@ const HospitalDashboard = () => {
                 </div>
               </div>
 
-              <button
-                onClick={handleEmergencySearch}
-                disabled={emergencySearch.loading || !emergencySearch.lat}
-                className="btn-advanced w-full justify-center gap-2 bg-destructive hover:bg-destructive/90 text-destructive-foreground"
-              >
-                {emergencySearch.loading ? (
-                  <><Loader2 className="w-4 h-4 animate-spin" /> Searching...</>
-                ) : (
-                  <><Search className="w-4 h-4" /> Find Nearby Donors</>
+              <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3">
+                <button
+                  onClick={handleEmergencySearch}
+                  disabled={emergencySearch.loading || !emergencySearch.lat}
+                  className="btn-advanced w-full justify-center gap-2 bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+                >
+                  {emergencySearch.loading ? (
+                    <><Loader2 className="w-4 h-4 animate-spin" /> Searching...</>
+                  ) : (
+                    <><Search className="w-4 h-4" /> Find Nearby Donors</>
+                  )}
+                </button>
+
+                {/* ✅ NEW: Live Transit Quick Link */}
+                {upcomingCamps.length > 0 && (
+                  <Link 
+                    to={`/hospital/camps/${upcomingCamps[0]._id}/transit`}
+                    className="btn-advanced justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white whitespace-nowrap"
+                  >
+                    <Navigation size={16} />
+                    View Live Transit
+                  </Link>
                 )}
-              </button>
+              </div>
 
               {/* Results */}
               {emergencySearch.results.length > 0 && (

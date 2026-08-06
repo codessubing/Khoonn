@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { Link } from "react-router-dom"; // ✅ Added Link for navigation
 import axios from "axios";
 import { toast, Toaster } from "react-hot-toast";
 import {
   MapPin, Calendar, Clock, Filter, Loader2, RefreshCw,
   ChevronLeft, ChevronRight, Droplet, Heart, Search, Users,
-  Building2, ListPlus, AlertCircle,
+  Building2, ListPlus, AlertCircle, QrCode // ✅ Added QrCode icon
 } from "lucide-react";
 
 // ✅ PRODUCTION FIX: Dynamic API base URL
@@ -121,6 +122,23 @@ const CampCard = ({ camp }) => {
           </p>
         </div>
       </div>
+
+      {/* ✅ NEW: Registration Button */}
+      {isUpcoming && !isFull && (
+        <Link 
+          to={`/donor/camps/${camp._id}/register`}
+          className="mt-4 w-full btn-advanced justify-center gap-2 bg-red-600 hover:bg-red-700 text-white border-transparent"
+        >
+          <QrCode size={16} />
+          Register for Camp
+        </Link>
+      )}
+      
+      {isFull && isUpcoming && (
+        <button disabled className="mt-4 w-full py-2.5 px-4 rounded-lg border border-destructive/20 bg-destructive/5 text-destructive cursor-not-allowed text-sm font-medium">
+          Camp Full
+        </button>
+      )}
     </div>
   );
 };
@@ -136,7 +154,6 @@ export const DonorCampsList = () => {
     page: 1, limit: 9, total: 0, totalPages: 1, currentPage: 1,
   });
 
-  // ✅ FIXED: Uses dynamic API_BASE_URL instead of VITE_API_URL
   const fetchCamps = useCallback(async () => {
     const token = localStorage.getItem("token"); 
     if (!token) {
@@ -158,7 +175,6 @@ export const DonorCampsList = () => {
         ...(searchTerm && { q: searchTerm }),
       }).toString();
       
-      // ✅ FIXED: Absolute URL pointing to Render backend
       const apiUrl = `${API_BASE_URL}/api/donor/camps?${params}`;
       const response = await axios.get(apiUrl, {
         headers: { Authorization: `Bearer ${token}` },

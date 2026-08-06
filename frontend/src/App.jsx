@@ -7,11 +7,19 @@ const RoleSelection = lazy(() => import("./pages/RoleSelection"));
 const LandingPage = lazy(() => import("./pages/Landing"));
 const About = lazy(() => import("./components/about/About"));
 const Contact = lazy(() => import("./components/contact/Contact"));
+const BloodAvailability = lazy(() => import("./pages/public/BloodAvailability"));
 
 // --- Auth Pages ---
 const Login = lazy(() => import("./pages/auth/Login"));
 const FacilityForm = lazy(() => import("./pages/auth/FacultyRegister"));
 const DonorRegister = lazy(() => import("./pages/auth/DonorRegister"));
+
+// ✅ FIXED: Converted to lazy import for consistent code-splitting
+const CampCheckInScanner = lazy(() => import("./pages/hospital/CampCheckInScanner"));
+const CampTransitMap = lazy(() => import("./pages/hospital/CampTransitMap")); // ✅ Added Staff Transit Map
+
+// ✅ NEW: Live Donor Map Component
+const LiveDonorMap = lazy(() => import("./components/maps/LiveDonorMap"));
 
 // --- Layouts & Guards ---
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -22,6 +30,8 @@ const DonorDashboard = lazy(() => import("./pages/donor/DonorDashboard"));
 const DonorProfile = lazy(() => import("./pages/donor/DonorProfile"));
 const DonorCampsList = lazy(() => import("./pages/donor/DonorCampsList"));
 const DonorDonationHistory = lazy(() => import("./pages/donor/DonorDonationHistory"));
+const CampRegistration = lazy(() => import("./pages/donor/CampRegistration"));
+const TransitSharing = lazy(() => import("./pages/donor/TransitSharing")); // ✅ ADDED: Missing Import
 
 // --- Hospital Routes ---
 const HospitalDashboard = lazy(() => import("./pages/hospital/HospitalDashboard"));
@@ -60,8 +70,9 @@ function App() {
           <Route path="/" element={<LandingPage />} />
           <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />
+          <Route path="/blood-availability" element={<BloodAvailability />} />
 
-          {/* register Routes */}
+          {/* Register Routes */}
           <Route path="/role-selection" element={<RoleSelection />} />
           
           {/* Auth Routes */}
@@ -78,6 +89,9 @@ function App() {
             <Route path="profile" element={<DonorProfile />} />
             <Route path="camps" element={<DonorCampsList />} />
             <Route path="history" element={<DonorDonationHistory />} />
+            <Route path="camps/:campId/register" element={<CampRegistration />} />
+            <Route path="transit/:campId" element={<TransitSharing />} /> {/* ✅ Donor Transit Sharing */}
+            <Route path="live-map" element={<LiveDonorMap />} /> {/* ✅ NEW: Donor Live Map */}
           </Route>
         
           {/* Hospital Dashboard */}
@@ -87,12 +101,11 @@ function App() {
           >
             <Route index element={<HospitalDashboard />} />
             <Route path="request-blood" element={<HospitalRequestBlood />} />
-            
-            {/* ✅ FIXED: Added missing route for sidebar "Blood Requests" link */}
             <Route path="blood-requests" element={<HospitalRequestHistory />} />
-            
             <Route path="inventory" element={<HospitalBloodStock />} />
             <Route path="donors" element={<DonorDirectory />} />
+            <Route path="camps/:campId/transit" element={<CampTransitMap />} /> {/* ✅ Staff Transit View */}
+            <Route path="live-donors/:campId" element={<LiveDonorMap />} /> {/* ✅ NEW: Hospital Live Donor Map */}
           </Route>
         
           {/* Blood Lab Dashboard */}
@@ -103,9 +116,12 @@ function App() {
             <Route index element={<BloodlabDashboard />} />
             <Route path="inventory" element={<BloodStock />} />
             <Route path="camps" element={<BloodCamps />} />
+            <Route path="camps/:campId/checkin" element={<CampCheckInScanner />} />
+            <Route path="camps/:campId/transit" element={<CampTransitMap />} /> {/* ✅ Lab Transit View */}
             <Route path="profile" element={<LabProfile />} />
             <Route path="requests" element={<LabManageRequests />} />
             <Route path="donor" element={<BloodLabDonor />} />
+            <Route path="live-donors/:campId" element={<LiveDonorMap />} /> {/* ✅ NEW: Lab Live Donor Map */}
           </Route>
           
           {/* Admin Dashboard */}

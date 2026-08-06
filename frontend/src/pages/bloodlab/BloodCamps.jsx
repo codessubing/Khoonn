@@ -1,8 +1,10 @@
+// frontend/src/pages/bloodlab/BloodCamps.jsx
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import {
   Calendar, Clock, MapPin, Users, Plus, Trash2, Edit3, Search,
   ChevronDown, ChevronUp, Droplet, CheckCircle, XCircle, MoreVertical,
-  Loader2, AlertCircle,
+  Loader2, AlertCircle, Camera, Navigation // ✅ Added Navigation icon for Transit
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 
@@ -56,8 +58,8 @@ const BloodCamps = () => {
     startTime: "",
     endTime: "",
     venue: "",
-    province: "", // Changed from state to province
-    city: "",     // Now acts as District/City
+    province: "", 
+    city: "",     
     pincode: "",
     expectedDonors: "",
   });
@@ -430,7 +432,7 @@ const BloodCamps = () => {
           </div>
         </div>
 
-        {/* Add/Edit Form - 🇳🇵 NEPAL OPTIMIZED */}
+        {/* Add/Edit Form - 🇳 NEPAL OPTIMIZED */}
         {showForm && (
           <form onSubmit={handleSubmit} className="bg-card border border-border rounded-xl p-6 space-y-5">
             <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
@@ -489,7 +491,7 @@ const BloodCamps = () => {
                 {errors.province && <p className="text-destructive text-xs mt-1.5 flex items-center gap-1.5"><AlertCircle size={14} /> {errors.province}</p>}
               </div>
 
-              {/* 🇳🇵 CITY/DISTRICT SELECTOR (CASCADING) */}
+              {/*  CITY/DISTRICT SELECTOR (CASCADING) */}
               <div>
                 <label className="block text-sm font-medium text-foreground mb-1.5">District / City <span className="text-destructive">*</span></label>
                 <select 
@@ -555,6 +557,8 @@ const BloodCamps = () => {
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
               {camps.map((camp) => {
                 const availableActions = getAvailableActions(camp);
+                const canCheckIn = camp.status === "Upcoming" || camp.status === "Ongoing";
+                
                 return (
                   <div key={camp._id} className="bg-card border border-border rounded-xl p-5 hover:shadow-md transition-all duration-300 group">
                     <div className="flex justify-between items-start mb-3">
@@ -591,7 +595,7 @@ const BloodCamps = () => {
                       </div>
                       <div className="flex items-start text-foreground">
                         <MapPin size={14} className="mr-2 text-muted-foreground shrink-0 mt-0.5" />
-                        {/* 🇳🇵 DISPLAYING NEPAL LOCATION FORMAT */}
+                        {/* 🇵 DISPLAYING NEPAL LOCATION FORMAT */}
                         <span className="line-clamp-2">
                           {camp.location.venue}, {camp.location.city}, {camp.location.state} - {camp.location.pincode}
                         </span>
@@ -605,6 +609,42 @@ const BloodCamps = () => {
                           <Users size={14} className="mr-2 shrink-0" />
                           <span>Actual: {camp.actualDonors} donors</span>
                         </div>
+                      )}
+                    </div>
+
+                    {/* ✅ NEW: Dual Action Buttons Grid */}
+                    <div className="mt-5 pt-4 border-t border-border grid grid-cols-2 gap-3">
+                      {canCheckIn ? (
+                        <>
+                          {/* Live Transit Button */}
+                          <Link 
+                            to={`/lab/camps/${camp._id}/transit`}
+                            className="btn-advanced w-full justify-center flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white border-transparent text-sm"
+                          >
+                            <Navigation size={16} />
+                            Live Transit
+                          </Link>
+
+                          {/* Check-In Button */}
+                          <Link 
+                            to={`/lab/camps/${camp._id}/checkin`}
+                            className="btn-advanced w-full justify-center flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white border-transparent text-sm"
+                          >
+                            <Camera size={16} />
+                            Check-In
+                          </Link>
+                        </>
+                      ) : (
+                        <>
+                          <button disabled className="w-full py-2.5 px-4 rounded-lg border border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed text-sm font-medium flex items-center justify-center gap-2">
+                            <Navigation size={16} />
+                            Transit Closed
+                          </button>
+                          <button disabled className="w-full py-2.5 px-4 rounded-lg border border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed text-sm font-medium flex items-center justify-center gap-2">
+                            <Camera size={16} />
+                            Check-In Closed
+                          </button>
+                        </>
                       )}
                     </div>
                   </div>

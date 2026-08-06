@@ -1,3 +1,4 @@
+// backend/models/donorModel.js (Updated with live tracking fields)
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 
@@ -62,6 +63,28 @@ const donorSchema = new mongoose.Schema(
     },
     lastLocationUpdate: { type: Date, default: Date.now },
 
+    // ✅ NEW: LIVE TRACKING FIELDS
+    liveLocation: {
+      type: {
+        type: String,
+        enum: ['Point'],
+        default: 'Point'
+      },
+      coordinates: {
+        type: [Number], // [lng, lat]
+        default: [0, 0]
+      },
+      updatedAt: { type: Date, default: Date.now }
+    },
+    liveStatus: {
+      type: String,
+      enum: ['idle', 'en_route', 'arriving', 'at_camp', 'completed'],
+      default: 'idle'
+    },
+    currentCampId: { type: mongoose.Schema.Types.ObjectId, ref: 'BloodCamp' },
+    estimatedArrivalTime: Date,
+    lastLiveUpdate: Date,
+
     // 🩸 Medical / Blood Info
     bloodGroup: {
       type: String,
@@ -114,6 +137,15 @@ const donorSchema = new mongoose.Schema(
         verified: { type: Boolean, default: false },
       },
     ],
+
+    // ✅ NEW: Donation requests from hospitals
+    donationRequests: [{
+      fromHospital: { type: mongoose.Schema.Types.ObjectId, ref: "Facility" },
+      message: String,
+      urgent: Boolean,
+      timestamp: { type: Date, default: Date.now },
+      status: { type: String, enum: ['pending', 'responded', 'declined'], default: 'pending' }
+    }],
 
     contactHistory: [
       {
@@ -184,8 +216,9 @@ donorSchema.index({ email: 1 });
 donorSchema.index({ phone: 1 });
 donorSchema.index({ bloodGroup: 1, lastDonationDate: 1 }); // Speeds up donor search
 
-// ✅ NEW: 2dsphere index for geospatial radius queries
+// ✅ NEW: 2dsphere index for geospatial radius queries (for both static and live locations)
 donorSchema.index({ location: "2dsphere" });
+donorSchema.index({ "liveLocation.coordinates": "2dsphere" }); // ✅ NEW: For live tracking
 
 const Donor = mongoose.model("Donor", donorSchema);
 export default Donor;
