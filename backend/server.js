@@ -59,6 +59,24 @@ app.use("/api/camps", campRoutes);
 app.use("/api/transit", transitRoutes); // ✅ Mounted transit routes
 app.use('/api/live', liveTrackingRoutes); // ✅ NEW: Live tracking endpoints
 
+// ✅ HEALTH CHECK ENDPOINT - For debugging
+app.get('/health', (req, res) => {
+  res.json({ 
+    status: 'OK', 
+    message: 'Khoonn Blood Bank API is running!',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    env: process.env.NODE_ENV || 'development',
+    routes: {
+      auth: '/api/auth/login, /api/auth/register, /api/auth/profile',
+      camps: '/api/camps',
+      donors: '/api/donors',
+      live: '/api/live',
+      transit: '/api/transit'
+    }
+  });
+});
+
 // 🗄️ DB Connection (WITH IPv4 FIX)
 mongoose
   .connect(process.env.MONGO_URI, {
@@ -105,6 +123,31 @@ io.on("connection", (socket) => {
   
   socket.on("disconnect", () => {
     console.log(`🔌 Client disconnected: ${socket.id}`);
+  });
+});
+
+// ✅ DEBUG: Log all incoming requests
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
+  next();
+});
+
+// ✅ FINAL 404 HANDLER - More informative than before
+app.use('*', (req, res) => {
+  console.log(`404 - Unhandled route: ${req.method} ${req.originalUrl}`);
+  res.status(404).json({ 
+    error: 'Route not found',
+    method: req.method,
+    path: req.originalUrl,
+    available_routes: [
+      '/health',
+      '/api/auth/login',
+      '/api/auth/register', 
+      '/api/camps',
+      '/api/donors',
+      '/api/live',
+      '/api/transit'
+    ]
   });
 });
 
