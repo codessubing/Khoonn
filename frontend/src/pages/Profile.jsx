@@ -25,7 +25,6 @@ export default function Profile() {
         return;
       }
 
-      // ✅ FIXED: Absolute URL pointing to Render backend
       const res = await fetch(`${API_BASE_URL}/api/auth/profile`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -116,10 +115,10 @@ export default function Profile() {
             {error || "Could not load profile data."}
           </p>
           <div className="flex gap-3">
-            <button onClick={fetchProfile} className="btn-ghost flex-1 justify-center">
+            <button onClick={fetchProfile} className="btn-ghost flex-1 justify-center active:scale-95 transition-transform">
               Retry
             </button>
-            <button onClick={() => navigate("/login")} className="btn-advanced flex-1 justify-center">
+            <button onClick={() => navigate("/login")} className="btn-advanced flex-1 justify-center active:scale-95 transition-transform">
               Login
             </button>
           </div>
@@ -139,13 +138,13 @@ export default function Profile() {
     .slice(0, 2);
 
   return (
-    <div className="min-h-screen bg-background p-4 sm:p-6 lg:p-8">
+    <div className="min-h-screen bg-background px-4 py-6 sm:p-6 lg:p-8">
       <div className="max-w-2xl mx-auto space-y-6">
         {/* Header Card */}
         <div className="bg-card border border-border rounded-2xl p-6 sm:p-8">
-          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
+          <div className="flex flex-col items-center sm:flex-row sm:items-start gap-6">
             {/* Avatar */}
-            <div className="relative">
+            <div className="relative shrink-0">
               <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-2xl border-2 border-primary/20">
                 {initials}
               </div>
@@ -155,13 +154,13 @@ export default function Profile() {
             </div>
 
             {/* User Info */}
-            <div className="flex-1 text-center sm:text-left">
-              <h1 className="text-2xl font-bold tracking-tight text-foreground">
+            <div className="flex-1 text-center sm:text-left w-full">
+              <h1 className="text-2xl font-bold tracking-tight text-foreground break-words">
                 {displayName}
               </h1>
               <p className="text-sm text-muted-foreground mt-1 flex items-center justify-center sm:justify-start gap-1.5">
-                <Mail className="w-3.5 h-3.5" />
-                {user.email}
+                <Mail className="w-3.5 h-3.5 shrink-0" />
+                <span className="truncate">{user.email}</span>
               </p>
 
               <div className="mt-3 flex flex-wrap items-center justify-center sm:justify-start gap-2">
@@ -178,21 +177,23 @@ export default function Profile() {
               </div>
             </div>
 
-            {/* Actions */}
-            <div className="flex gap-2">
+            {/* Actions - Stacked on mobile, inline on desktop */}
+            <div className="flex gap-2 w-full sm:w-auto justify-center sm:justify-end mt-2 sm:mt-0">
               <button
                 onClick={() => navigate(roleConfig.profilePath)}
-                className="btn-ghost"
+                className="btn-ghost flex-1 sm:flex-none justify-center active:scale-95 transition-transform"
                 title="Edit Profile"
               >
                 <Edit3 className="w-4 h-4" />
+                <span className="sm:hidden ml-2 text-xs">Edit</span>
               </button>
               <button
                 onClick={handleLogout}
-                className="btn-ghost text-destructive hover:bg-destructive/10"
+                className="btn-ghost text-destructive hover:bg-destructive/10 flex-1 sm:flex-none justify-center active:scale-95 transition-transform"
                 title="Logout"
               >
                 <LogOut className="w-4 h-4" />
+                <span className="sm:hidden ml-2 text-xs">Logout</span>
               </button>
             </div>
           </div>
@@ -209,7 +210,7 @@ export default function Profile() {
                 Account ID
               </span>
             </div>
-            <p className="text-sm font-mono text-foreground truncate">
+            <p className="text-xs font-mono text-muted-foreground truncate" title={user._id}>
               {user._id || "N/A"}
             </p>
           </div>
@@ -223,7 +224,7 @@ export default function Profile() {
                 Email
               </span>
             </div>
-            <p className="text-sm text-foreground truncate">
+            <p className="text-sm text-foreground truncate" title={user.email}>
               {user.email || "N/A"}
             </p>
           </div>
@@ -252,7 +253,7 @@ export default function Profile() {
                   Blood Group
                 </span>
               </div>
-              <p className="text-sm font-bold text-foreground">
+              <p className="text-lg font-bold text-foreground">
                 {user.bloodGroup}
               </p>
             </div>
@@ -266,7 +267,7 @@ export default function Profile() {
           </p>
           <button
             onClick={() => navigate(roleConfig.profilePath)}
-            className="btn-advanced"
+            className="btn-advanced w-full sm:w-auto justify-center active:scale-95 transition-transform"
           >
             <Edit3 className="w-4 h-4" />
             Go to {roleConfig.label} Profile

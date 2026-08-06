@@ -35,29 +35,40 @@ const Contact = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // ✅ FIXED: Real API call instead of setTimeout mock
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
 
     try {
+      // ✅ Trim all string inputs to prevent accidental space-only submissions
+      const trimmedData = {
+        name: formData.name.trim(),
+        email: formData.email.trim(),
+        phone: formData.phone.trim(),
+        message: formData.message.trim(),
+      };
+
       const res = await fetch(`${API_BASE_URL}/api/contact`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(trimmedData),
       });
 
-      const data = await res.json();
+      // ✅ Safely parse JSON in case the server returns an HTML error page
+      const contentType = res.headers.get("content-type");
+      const data = contentType?.includes("application/json") 
+        ? await res.json() 
+        : { message: "Server returned an invalid response" };
 
       if (res.ok) {
         toast.success("Message sent! We'll get back to you soon.");
         setFormData({ name: "", email: "", phone: "", message: "" });
       } else {
-        toast.error(data.message || "Failed to send message");
+        toast.error(data.message || "Failed to send message. Please try again.");
       }
     } catch (error) {
       console.error("Contact form error:", error);
-      toast.error("Network error. Please check your connection.");
+      toast.error("Network error. Please check your internet connection.");
     } finally {
       setIsSubmitting(false);
     }
@@ -102,7 +113,7 @@ const Contact = () => {
                 <Mail className="w-6 h-6 text-primary" />
               </div>
               <h3 className="text-lg font-semibold mb-2">Email Us</h3>
-              <p className="text-muted-foreground">support@bloodconnect.org</p>
+              <p className="text-muted-foreground">support@khoonn.org</p>
               <p className="text-sm text-muted-foreground mt-1">We reply within 24 hours</p>
             </div>
 
@@ -182,7 +193,7 @@ const Contact = () => {
               <div className="space-y-2">
                 <label htmlFor="name" className="text-sm font-medium text-foreground">Full Name</label>
                 <div className="relative">
-                  <User className="absolute left-3 top-3 w-5 h-5 text-muted-foreground" />
+                  <User className="absolute left-3 top-3 w-5 h-5 text-muted-foreground pointer-events-none" />
                   <input
                     id="name"
                     name="name"
@@ -200,7 +211,7 @@ const Contact = () => {
               <div className="space-y-2">
                 <label htmlFor="email" className="text-sm font-medium text-foreground">Email Address</label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-3 w-5 h-5 text-muted-foreground" />
+                  <Mail className="absolute left-3 top-3 w-5 h-5 text-muted-foreground pointer-events-none" />
                   <input
                     id="email"
                     name="email"
@@ -216,16 +227,19 @@ const Contact = () => {
 
               {/* Phone */}
               <div className="space-y-2">
-                <label htmlFor="phone" className="text-sm font-medium text-foreground">Phone Number</label>
+                <label htmlFor="phone" className="text-sm font-medium text-foreground">Phone Number (Optional)</label>
                 <div className="relative">
-                  <Phone className="absolute left-3 top-3 w-5 h-5 text-muted-foreground" />
+                  <Phone className="absolute left-3 top-3 w-5 h-5 text-muted-foreground pointer-events-none" />
                   <input
                     id="phone"
                     name="phone"
                     type="tel"
                     value={formData.phone}
                     onChange={handleChange}
-                    placeholder="Enter phone number"
+                    placeholder="e.g., 98XXXXXXXX"
+                    // ✅ Nepal Phone Number Validation Pattern
+                    pattern="^[9][0-9]{9}$"
+                    title="Please enter a valid 10-digit Nepal phone number starting with 9"
                     className="w-full rounded-lg border border-border bg-background px-3 py-2 pl-10 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                   />
                 </div>
@@ -233,14 +247,18 @@ const Contact = () => {
 
               {/* Message */}
               <div className="space-y-2">
-                <label htmlFor="message" className="text-sm font-medium text-foreground">Message</label>
+                <div className="flex justify-between items-center">
+                  <label htmlFor="message" className="text-sm font-medium text-foreground">Message</label>
+                  <span className="text-xs text-muted-foreground">{formData.message.length}/1000</span>
+                </div>
                 <div className="relative">
-                  <MessageSquare className="absolute left-3 top-3 w-5 h-5 text-muted-foreground" />
+                  <MessageSquare className="absolute left-3 top-3 w-5 h-5 text-muted-foreground pointer-events-none" />
                   <textarea
                     id="message"
                     name="message"
                     rows={4}
                     required
+                    maxLength={1000} // ✅ Prevent spam
                     value={formData.message}
                     onChange={handleChange}
                     placeholder="Write your message here..."
@@ -253,7 +271,7 @@ const Contact = () => {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="inline-flex w-full items-center justify-center rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground ring-offset-background transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
+                className="inline-flex w-full items-center justify-center rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground ring-offset-background transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 active:scale-[0.98] transition-transform"
               >
                 {isSubmitting ? (
                   <>

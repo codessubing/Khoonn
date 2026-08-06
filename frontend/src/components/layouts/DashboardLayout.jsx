@@ -1,4 +1,3 @@
-// frontend/src/components/DashboardLayout.jsx (Updated with Live Map links)
 import { useState, useEffect } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import {
@@ -30,9 +29,8 @@ const DashboardLayout = ({ userRole = "donor" }) => {
       items: [
         { path: "/donor", label: "Dashboard", icon: BarChart3 },
         { path: "/donor/profile", label: "My Profile", icon: User },
-        { path: "/donor/history", label: "Donation History", icon: History },
+        { path: "/donor/history", label: "History", icon: History },
         { path: "/donor/camps", label: "Blood Camps", icon: Calendar },
-        // ✅ NEW: Live Map Link for Donors
         { path: "/donor/live-map", label: "Live Map", icon: Map },
       ],
     },
@@ -43,16 +41,10 @@ const DashboardLayout = ({ userRole = "donor" }) => {
       icon: Building,
       items: [
         { path: "/hospital", label: "Dashboard", icon: BarChart3 },
-        
-        // ✅ FIXED: Changed from 'blood-request-create' to 'request-blood'
-        { path: "/hospital/request-blood", label: "Request Blood", icon: ClipboardPlus },
-        
-        // ✅ FIXED: Changed from 'blood-request-history' to 'blood-requests' 
-        { path: "/hospital/blood-requests", label: "Blood Requests", icon: ClipboardList },
-        
+        { path: "/hospital/request-blood", label: "Request", icon: ClipboardPlus },
+        { path: "/hospital/blood-requests", label: "Requests", icon: ClipboardList },
         { path: "/hospital/inventory", label: "Inventory", icon: Droplet },
         { path: "/hospital/donors", label: "Donors", icon: User },
-        // ✅ NEW: Live Map Link for Hospitals
         { path: "/hospital/live-donors", label: "Live Donors", icon: Map },
       ],
     },
@@ -68,7 +60,6 @@ const DashboardLayout = ({ userRole = "donor" }) => {
         { path: "/lab/camps", label: "Camps", icon: Calendar },
         { path: "/lab/requests", label: "Requests", icon: ClipboardList },
         { path: "/lab/profile", label: "Profile", icon: CheckCircle },
-        // ✅ NEW: Live Map Link for Labs
         { path: "/lab/live-donors", label: "Live Donors", icon: Map },
       ],
     },
@@ -86,8 +77,6 @@ const DashboardLayout = ({ userRole = "donor" }) => {
     },
   };
 
-  // ... rest of your existing code remains the same ...
-  
   useEffect(() => {
     const fetchUserData = async () => {
       setIsLoading(true);
@@ -179,16 +168,16 @@ const DashboardLayout = ({ userRole = "donor" }) => {
   return (
     <div className="min-h-screen flex flex-col bg-background text-foreground">
       {/* HEADER */}
-      <header className="flex justify-between items-center bg-background/80 backdrop-blur-md border-b border-border px-4 sm:px-6 py-3 sticky top-0 z-50">
-        <div className="flex items-center gap-3">
+      <header className="flex justify-between items-center bg-background/80 backdrop-blur-md border-b border-border px-4 sm:px-6 py-3 sticky top-0 z-40">
+        <div className="flex items-center gap-2 sm:gap-3">
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="lg:hidden p-2 rounded-lg hover:bg-muted transition-colors"
+            className="lg:hidden p-2 -ml-2 rounded-lg hover:bg-muted transition-colors"
           >
-            {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
+            {sidebarOpen ? <X size={22} /> : <Menu size={22} />}
           </button>
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-primary/10">
+            <div className="p-2 rounded-xl bg-primary/10 shrink-0">
               <ClipboardPlus size={20} className="text-primary" />
             </div>
             <div className="hidden sm:block">
@@ -207,9 +196,10 @@ const DashboardLayout = ({ userRole = "donor" }) => {
 
         <div className="flex items-center gap-2 sm:gap-4">
           <div className="flex items-center gap-2 sm:gap-3">
-            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-primary-foreground font-semibold bg-primary">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-primary-foreground font-semibold bg-primary text-sm sm:text-base shrink-0">
               {userData?.name?.charAt(0)?.toUpperCase() ||
                 userData?.fullName?.charAt(0)?.toUpperCase() ||
+                userData?.email?.charAt(0)?.toUpperCase() ||
                 "U"}
             </div>
             <div className="hidden sm:block text-right">
@@ -236,10 +226,9 @@ const DashboardLayout = ({ userRole = "donor" }) => {
         <aside
           className={`${
             sidebarOpen ? "translate-x-0" : "-translate-x-full"
-          } lg:translate-x-0 fixed lg:static inset-y-0 left-0 z-40 ${
+          } lg:translate-x-0 fixed lg:static inset-y-0 left-0 z-50 ${
             sidebarCollapsed ? "w-16" : "w-64"
-          } bg-card border-r border-border transition-all duration-300 flex flex-col`
-          }>
+          } bg-card border-r border-border transition-all duration-300 flex flex-col`}>
           <div className="flex items-center justify-between p-4 border-b border-border">
             {!sidebarCollapsed && (
               <div className="flex items-center gap-3">
@@ -266,7 +255,7 @@ const DashboardLayout = ({ userRole = "donor" }) => {
             <div className="flex flex-col gap-1">
               {config.items.map((item) => {
                 const Icon = item.icon;
-                const isActive = location.pathname === item.path;
+                const isActive = location.pathname === item.path || location.pathname.startsWith(item.path + "/");
                 return (
                   <button
                     key={item.path}
@@ -308,7 +297,8 @@ const DashboardLayout = ({ userRole = "donor" }) => {
           )}
         </aside>
 
-        <main className="flex-1 min-h-[calc(100vh-64px)] pb-16 lg:pb-0">
+        {/* ✅ Increased pb-20 on mobile to prevent content from hiding behind bottom nav */}
+        <main className="flex-1 min-h-[calc(100vh-64px)] pb-20 lg:pb-0">
           <div className="h-full overflow-auto p-4 sm:p-6">
             <Outlet context={{ userData }} />
           </div>
@@ -318,32 +308,52 @@ const DashboardLayout = ({ userRole = "donor" }) => {
       {/* Mobile Sidebar Overlay */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-30 lg:hidden"
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden transition-opacity"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
-      {/* Mobile Bottom Navigation */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-background border-t border-border z-40">
-        <div className="flex justify-around items-center p-2">
+      {/* ✅ MOBILE BOTTOM NAVIGATION (Smart & Responsive) */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-md border-t border-border z-40 pb-[env(safe-area-inset-bottom)]">
+        <div className="flex justify-around items-center h-16">
           {config.items.slice(0, 4).map((item) => {
             const Icon = item.icon;
-            const isActive = location.pathname === item.path;
+            const isActive = location.pathname === item.path || location.pathname.startsWith(item.path + "/");
             return (
               <button
                 key={item.path}
-                onClick={() => navigate(item.path)}
-                className={`flex flex-col items-center p-2 rounded-lg transition-colors flex-1 mx-1 ${
-                  isActive ? "text-primary" : "text-muted-foreground"
+                onClick={() => {
+                  navigate(item.path);
+                  setSidebarOpen(false);
+                }}
+                className={`flex flex-col items-center justify-center w-full h-full transition-all active:scale-95 ${
+                  isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
                 }`}
               >
-                <Icon size={20} />
-                <span className="text-xs mt-1 font-medium">
-                  {item.label.split(" ")[0]}
+                <div className={`p-1 rounded-full transition-colors ${isActive ? "bg-primary/10" : ""}`}>
+                  <Icon size={22} className={isActive ? "fill-current/10" : ""} />
+                </div>
+                <span className="text-[10px] mt-1 font-medium truncate max-w-[70px] text-center leading-tight">
+                  {item.label}
                 </span>
               </button>
             );
           })}
+          
+          {/* "More" button if there are more than 4 items */}
+          {config.items.length > 4 && (
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className={`flex flex-col items-center justify-center w-full h-full transition-all active:scale-95 ${
+                sidebarOpen ? "text-primary" : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <div className={`p-1 rounded-full transition-colors ${sidebarOpen ? "bg-primary/10" : ""}`}>
+                <Menu size={22} />
+              </div>
+              <span className="text-[10px] mt-1 font-medium">More</span>
+            </button>
+          )}
         </div>
       </div>
     </div>

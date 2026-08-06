@@ -1,6 +1,5 @@
-// frontend/src/pages/hospital/HospitalDashboard.jsx (Updated with Live Donor Map Quick Action)
 import { useEffect, useState } from "react";
-import { useNavigate, Link } from "react-router-dom"; // ✅ Added Link
+import { useNavigate, Link } from "react-router-dom";
 import axios from "axios";
 import { toast } from "react-hot-toast";
 import {
@@ -9,7 +8,6 @@ import {
   RefreshCw, Loader2, Navigation, Search, User, X, ChevronDown, ChevronUp, Map
 } from "lucide-react";
 
-// ✅ PRODUCTION FIX: Dynamic API base URL
 const API_BASE_URL = import.meta.env.PROD
   ? "https://khoonn-backend.onrender.com"
   : "http://localhost:5000";
@@ -19,7 +17,7 @@ const HospitalDashboard = () => {
   const [hospital, setHospital] = useState(null);
   const [bloodStock, setBloodStock] = useState([]);
   const [requests, setRequests] = useState([]);
-  const [upcomingCamps, setUpcomingCamps] = useState([]); // ✅ NEW: For Transit Link
+  const [upcomingCamps, setUpcomingCamps] = useState([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
     totalUnits: 0,
@@ -29,7 +27,6 @@ const HospitalDashboard = () => {
     totalRequests: 0,
   });
 
-  // ✅ NEW: Emergency Donor Search State
   const [emergencySearch, setEmergencySearch] = useState({
     isOpen: false,
     loading: false,
@@ -43,7 +40,7 @@ const HospitalDashboard = () => {
 
   const FACILITY_API = `${API_BASE_URL}/api/facility`;
   const HOSPITAL_API = `${API_BASE_URL}/api/hospital`;
-  const CAMPS_API = `${API_BASE_URL}/api/camps`; // ✅ NEW: Camps endpoint
+  const CAMPS_API = `${API_BASE_URL}/api/camps`;
 
   useEffect(() => {
     const fetchHospitalData = async () => {
@@ -65,16 +62,15 @@ const HospitalDashboard = () => {
 
         if (!h) throw new Error("No hospital data found in response");
 
-        // ✅ Fetch all data in parallel including upcoming camps
         const [stockRes, requestsRes, campsRes] = await Promise.all([
           axios.get(`${HOSPITAL_API}/blood/stock`, { headers: { Authorization: `Bearer ${token}` } }),
           axios.get(`${HOSPITAL_API}/blood/requests`, { headers: { Authorization: `Bearer ${token}` } }),
-          axios.get(`${CAMPS_API}`, { headers: { Authorization: `Bearer ${token}` } }) // Public endpoint, no auth needed usually
+          axios.get(`${CAMPS_API}`, { headers: { Authorization: `Bearer ${token}` } })
         ]);
 
         const stockData = stockRes.data.data || [];
         const requestsData = requestsRes.data.data || [];
-        const campsData = campsRes.data.camps || campsRes.data.data || []; // ✅ Get upcoming camps
+        const campsData = campsRes.data.camps || campsRes.data.data || [];
 
         const totalUnits = stockData.reduce((sum, item) => sum + item.quantity, 0);
         const lowStock = stockData.filter((item) => item.quantity < 5).length;
@@ -104,7 +100,7 @@ const HospitalDashboard = () => {
 
         setBloodStock(stockData);
         setRequests(requestsData);
-        setUpcomingCamps(campsData.slice(0, 3)); // ✅ Store top 3 upcoming camps
+        setUpcomingCamps(campsData.slice(0, 3));
         setStats({
           totalUnits,
           lowStock,
@@ -126,7 +122,6 @@ const HospitalDashboard = () => {
     fetchHospitalData();
   }, [navigate]);
 
-  // ✅ NEW: Geolocation Capture for Emergency Search
   const handleCaptureLocation = () => {
     if (!navigator.geolocation) {
       toast.error("Geolocation not supported by your browser");
@@ -157,7 +152,6 @@ const HospitalDashboard = () => {
     );
   };
 
-  // ✅ UPDATED: Robust Emergency Search with Detailed Error Logging
   const handleEmergencySearch = async () => {
     if (!emergencySearch.lat || !emergencySearch.lng) {
       toast.error("Please capture hospital location first");
@@ -285,10 +279,10 @@ const HospitalDashboard = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" />
-          <p className="text-sm font-medium text-muted-foreground">Loading hospital dashboard...</p>
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="w-6 h-6 animate-spin text-primary" />
+          <p className="text-xs font-medium text-muted-foreground">Loading dashboard...</p>
         </div>
       </div>
     );
@@ -297,12 +291,12 @@ const HospitalDashboard = () => {
   if (!hospital) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
-        <div className="text-center bg-card border border-border rounded-2xl p-8 max-w-sm w-full">
-          <AlertTriangle className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
-          <h2 className="text-lg font-semibold text-foreground mb-2">Failed to load data</h2>
-          <p className="text-sm text-muted-foreground mb-6">Please try refreshing the page or contact support.</p>
-          <button onClick={() => window.location.reload()} className="btn-advanced w-full justify-center gap-2">
-            <RefreshCw size={16} />
+        <div className="text-center bg-card border border-border rounded-xl p-6 max-w-sm w-full">
+          <AlertTriangle className="w-8 h-8 text-muted-foreground/30 mx-auto mb-3" />
+          <h2 className="text-base font-semibold text-foreground mb-2">Failed to load data</h2>
+          <p className="text-xs text-muted-foreground mb-4">Please try refreshing the page or contact support.</p>
+          <button onClick={() => window.location.reload()} className="btn-advanced w-full justify-center gap-1.5 text-xs">
+            <RefreshCw size={14} />
             Refresh Page
           </button>
         </div>
@@ -314,44 +308,44 @@ const HospitalDashboard = () => {
   const recentActivity = getRecentActivity();
 
   return (
-    <div className="min-h-screen bg-background p-4 sm:p-6 lg:p-8">
-      <div className="max-w-7xl mx-auto space-y-8">
+    <div className="min-h-screen bg-background p-3">
+      <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">Hospital Dashboard</h1>
-          <p className="text-sm text-muted-foreground mt-1">Welcome back! Here's your hospital overview.</p>
+          <h1 className="text-xl font-bold tracking-tight text-foreground">Hospital Dashboard</h1>
+          <p className="text-xs text-muted-foreground mt-0.5">Welcome back! Here's your hospital overview.</p>
         </div>
 
-        {/* ✅ UPDATED: Emergency Donor Matcher + Live Transit Quick Access */}
-        <div className="bg-gradient-to-br from-destructive/5 to-destructive/10 border border-destructive/20 rounded-xl p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-lg bg-destructive/10">
-                <Navigation className="w-5 h-5 text-destructive" />
+        {/* Emergency Donor Matcher + Live Transit Quick Access */}
+        <div className="bg-gradient-to-br from-destructive/5 to-destructive/10 border border-destructive/20 rounded-lg p-4">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 rounded-lg bg-destructive/10">
+                <Navigation className="w-4 h-4 text-destructive" />
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-foreground">Emergency Donor Matcher</h3>
-                <p className="text-xs text-muted-foreground">Find eligible donors near your hospital in real-time</p>
+                <h3 className="text-sm font-semibold text-foreground">Emergency Donor Matcher</h3>
+                <p className="text-[10px] text-muted-foreground">Find eligible donors near your hospital in real-time</p>
               </div>
             </div>
             <button
               onClick={() => setEmergencySearch(prev => ({ ...prev, isOpen: !prev.isOpen }))}
-              className="p-2 rounded-lg hover:bg-destructive/10 transition-colors text-muted-foreground hover:text-foreground"
+              className="p-1.5 rounded-lg hover:bg-destructive/10 transition-colors text-muted-foreground hover:text-foreground"
             >
-              {emergencySearch.isOpen ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+              {emergencySearch.isOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
             </button>
           </div>
 
           {emergencySearch.isOpen && (
-            <div className="space-y-4 pt-2 border-t border-destructive/10">
+            <div className="space-y-3 pt-2 border-t border-destructive/10">
               {/* Search Controls */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-muted-foreground mb-1.5">Blood Type Needed</label>
+                  <label className="block text-[10px] font-medium text-muted-foreground mb-1">Blood Type Needed</label>
                   <select
                     value={emergencySearch.bloodType}
                     onChange={(e) => setEmergencySearch(prev => ({ ...prev, bloodType: e.target.value }))}
-                    className="input-minimal text-sm"
+                    className="input-minimal text-xs"
                   >
                     {["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"].map(t => (
                       <option key={t} value={t}>{t}</option>
@@ -360,11 +354,11 @@ const HospitalDashboard = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-muted-foreground mb-1.5">Search Radius</label>
+                  <label className="block text-[10px] font-medium text-muted-foreground mb-1">Search Radius</label>
                   <select
                     value={emergencySearch.radiusKm}
                     onChange={(e) => setEmergencySearch(prev => ({ ...prev, radiusKm: e.target.value }))}
-                    className="input-minimal text-sm"
+                    className="input-minimal text-xs"
                   >
                     <option value={3}>Within 3 km</option>
                     <option value={5}>Within 5 km</option>
@@ -374,71 +368,70 @@ const HospitalDashboard = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-muted-foreground mb-1.5">Hospital Location</label>
+                  <label className="block text-[10px] font-medium text-muted-foreground mb-1">Hospital Location</label>
                   <button
                     onClick={handleCaptureLocation}
                     disabled={emergencySearch.loading}
-                    className="btn-ghost w-full justify-center gap-2 text-sm"
+                    className="btn-ghost w-full justify-center gap-1.5 text-xs py-1.5"
                   >
                     {emergencySearch.lat ? (
                       <>
-                        <CheckCircle size={14} className="text-green-600" />
+                        <CheckCircle size={12} className="text-green-600" />
                         {emergencySearch.lat.toFixed(4)}, {emergencySearch.lng.toFixed(4)}
                       </>
                     ) : (
                       <>
-                        <MapPin size={14} />
-                        Get Current Location
+                        <MapPin size={12} />
+                        Get Location
                       </>
                     )}
                   </button>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3">
+              <div className="grid grid-cols-1 gap-2">
                 <button
                   onClick={handleEmergencySearch}
                   disabled={emergencySearch.loading || !emergencySearch.lat}
-                  className="btn-advanced w-full justify-center gap-2 bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+                  className="btn-advanced w-full justify-center gap-1.5 text-xs bg-destructive hover:bg-destructive/90 text-destructive-foreground py-2"
                 >
                   {emergencySearch.loading ? (
-                    <><Loader2 className="w-4 h-4 animate-spin" /> Searching...</>
+                    <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Searching...</>
                   ) : (
-                    <><Search className="w-4 h-4" /> Find Nearby Donors</>
+                    <><Search className="w-3.5 h-3.5" /> Find Donors</>
                   )}
                 </button>
 
-                {/* ✅ NEW: Live Transit Quick Link */}
                 {upcomingCamps.length > 0 && (
                   <Link 
                     to={`/hospital/camps/${upcomingCamps[0]._id}/transit`}
-                    className="btn-advanced justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white whitespace-nowrap"
+                    className="btn-advanced justify-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white whitespace-nowrap text-xs py-2"
                   >
-                    <Navigation size={16} />
-                    View Live Transit
+                    <Navigation size={14} />
+                    Live Transit
                   </Link>
                 )}
               </div>
 
               {/* Results */}
               {emergencySearch.results.length > 0 && (
-                <div className="space-y-3 pt-2">
-                  <p className="text-xs font-medium text-muted-foreground">
+                <div className="space-y-2 pt-2">
+                  <p className="text-[10px] font-medium text-muted-foreground">
                     Found {emergencySearch.results.length} eligible donor(s):
                   </p>
                   {emergencySearch.results.map((donor) => (
-                    <div key={donor._id} className="bg-card border border-border rounded-lg p-4">
+                    <div key={donor._id} className="bg-card border border-border rounded-lg p-3">
                       <div className="flex items-start justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                            <User className="w-5 h-5 text-primary" />
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                            <User className="w-4 h-4 text-primary" />
                           </div>
                           <div>
-                            <p className="font-semibold text-sm text-foreground">{donor.fullName}</p>
-                            <p className="text-xs text-muted-foreground">
+                            <p className="font-semibold text-xs text-foreground">{donor.fullName}</p>
+                            <p className="text-[10px] text-muted-foreground">
                                {donor.distanceKm}km away • {donor.city}
                             </p>
-                            <p className="text-xs text-muted-foreground">
+                            <p className="text-[10px] text-muted-foreground">
                               Last donated: {donor.lastDonationDate 
                                 ? new Date(donor.lastDonationDate).toLocaleDateString() 
                                 : "Never"}
@@ -447,9 +440,9 @@ const HospitalDashboard = () => {
                         </div>
                         <a
                           href={`tel:${donor.phone}`}
-                          className="btn-advanced text-xs py-2 px-4 shrink-0 ml-2"
+                          className="btn-advanced text-[10px] py-1.5 px-3 shrink-0 ml-2"
                         >
-                          <Phone size={14} className="mr-1 inline" /> Call
+                          <Phone size={12} className="mr-0.5 inline" /> Call
                         </a>
                       </div>
                     </div>
@@ -458,108 +451,108 @@ const HospitalDashboard = () => {
               )}
 
               {emergencySearch.results.length === 0 && emergencySearch.lat && !emergencySearch.loading && (
-                <div className="text-center py-6 text-muted-foreground">
-                  <AlertTriangle className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm">No eligible donors found in this radius</p>
-                  <p className="text-xs mt-1">Try increasing the search radius or check different blood types</p>
+                <div className="text-center py-4 text-muted-foreground">
+                  <AlertTriangle className="w-6 h-6 mx-auto mb-1.5 opacity-50" />
+                  <p className="text-xs">No eligible donors found in this radius</p>
+                  <p className="text-[10px] mt-1">Try increasing the search radius</p>
                 </div>
               )}
             </div>
           )}
         </div>
 
-        {/* ✅ NEW: Quick Actions Section for Hospital */}
-        <div className="bg-card border border-border rounded-xl p-6">
-          <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-            <Activity className="w-5 h-5 text-primary" />
+        {/* Quick Actions Section for Hospital */}
+        <div className="bg-card border border-border rounded-lg p-4">
+          <h2 className="text-base font-semibold text-foreground mb-3 flex items-center gap-1.5">
+            <Activity className="w-4 h-4 text-primary" />
             Quick Actions
           </h2>
           
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 gap-3">
             <Link to="/hospital/live-donors" className="block">
-              <div className="p-4 rounded-xl border border-border bg-card hover:bg-muted text-left transition-colors group">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="p-2 bg-primary/10 text-primary rounded-lg group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-                    <Map className="w-4 h-4" />
+              <div className="p-3 rounded-lg border border-border bg-card hover:bg-muted text-left transition-colors group">
+                <div className="flex items-center gap-2.5 mb-2">
+                  <div className="p-1.5 bg-primary/10 text-primary rounded-lg group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                    <Map className="w-3.5 h-3.5" />
                   </div>
-                  <h4 className="font-semibold text-foreground">Live Donor Map</h4>
+                  <h4 className="font-semibold text-foreground text-sm">Live Donor Map</h4>
                 </div>
-                <p className="text-sm text-muted-foreground">Track donors in real-time</p>
+                <p className="text-xs text-muted-foreground">Track donors in real-time</p>
               </div>
             </Link>
             
             <Link to="/hospital/request-blood" className="block">
-              <div className="p-4 rounded-xl border border-border bg-card hover:bg-muted text-left transition-colors group">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="p-2 bg-green-500/10 text-green-600 dark:text-green-400 rounded-lg group-hover:bg-green-600 group-hover:text-white transition-colors">
-                    <Droplet className="w-4 h-4" />
+              <div className="p-3 rounded-lg border border-border bg-card hover:bg-muted text-left transition-colors group">
+                <div className="flex items-center gap-2.5 mb-2">
+                  <div className="p-1.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-lg group-hover:bg-green-600 group-hover:text-white transition-colors">
+                    <Droplet className="w-3.5 h-3.5" />
                   </div>
-                  <h4 className="font-semibold text-foreground">Request Blood</h4>
+                  <h4 className="font-semibold text-foreground text-sm">Request Blood</h4>
                 </div>
-                <p className="text-sm text-muted-foreground">Order blood units</p>
+                <p className="text-xs text-muted-foreground">Order blood units</p>
               </div>
             </Link>
             
             <Link to="/hospital/donors" className="block">
-              <div className="p-4 rounded-xl border border-border bg-card hover:bg-muted text-left transition-colors group">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="p-2 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-lg group-hover:bg-blue-600 group-hover:text-white transition-colors">
-                    <Users className="w-4 h-4" />
+              <div className="p-3 rounded-lg border border-border bg-card hover:bg-muted text-left transition-colors group">
+                <div className="flex items-center gap-2.5 mb-2">
+                  <div className="p-1.5 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-lg group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                    <Users className="w-3.5 h-3.5" />
                   </div>
-                  <h4 className="font-semibold text-foreground">Donor Directory</h4>
+                  <h4 className="font-semibold text-foreground text-sm">Donor Directory</h4>
                 </div>
-                <p className="text-sm text-muted-foreground">View all donors</p>
+                <p className="text-xs text-muted-foreground">View all donors</p>
               </div>
             </Link>
             
             <Link to="/hospital/blood-requests" className="block">
-              <div className="p-4 rounded-xl border border-border bg-card hover:bg-muted text-left transition-colors group">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="p-2 bg-purple-500/10 text-purple-600 dark:text-purple-400 rounded-lg group-hover:bg-purple-600 group-hover:text-white transition-colors">
-                    <TrendingUp className="w-4 h-4" />
+              <div className="p-3 rounded-lg border border-border bg-card hover:bg-muted text-left transition-colors group">
+                <div className="flex items-center gap-2.5 mb-2">
+                  <div className="p-1.5 bg-purple-500/10 text-purple-600 dark:text-purple-400 rounded-lg group-hover:bg-purple-600 group-hover:text-white transition-colors">
+                    <TrendingUp className="w-3.5 h-3.5" />
                   </div>
-                  <h4 className="font-semibold text-foreground">Blood Requests</h4>
+                  <h4 className="font-semibold text-foreground text-sm">Blood Requests</h4>
                 </div>
-                <p className="text-sm text-muted-foreground">View pending requests</p>
+                <p className="text-xs text-muted-foreground">View pending requests</p>
               </div>
             </Link>
           </div>
         </div>
 
         {/* Hospital Profile Card */}
-        <div className="bg-card border border-border rounded-xl p-6">
-          <div className="flex flex-col lg:flex-row items-start lg:items-center gap-6">
-            <div className="p-3 rounded-xl bg-primary/10 shrink-0">
-              <Building2 className="w-6 h-6 text-primary" />
+        <div className="bg-card border border-border rounded-lg p-4">
+          <div className="flex flex-col gap-4">
+            <div className="p-2 rounded-lg bg-primary/10 shrink-0">
+              <Building2 className="w-5 h-5 text-primary" />
             </div>
 
             <div className="flex-1 min-w-0">
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div className="flex flex-col gap-3">
                 <div>
-                  <h2 className="text-xl font-semibold text-foreground">{hospital.name}</h2>
-                  <p className="text-sm text-muted-foreground">{hospital.email}</p>
+                  <h2 className="text-lg font-semibold text-foreground">{hospital.name}</h2>
+                  <p className="text-xs text-muted-foreground">{hospital.email}</p>
 
-                  <div className="flex flex-wrap gap-4 mt-3 text-sm text-muted-foreground">
-                    <p className="flex items-center gap-2">
-                      <MapPin className="w-4 h-4 text-primary shrink-0" />
+                  <div className="flex flex-wrap gap-3 mt-2 text-xs text-muted-foreground">
+                    <p className="flex items-center gap-1.5">
+                      <MapPin className="w-3.5 h-3.5 text-primary shrink-0" />
                       <span className="truncate">{hospital.address}</span>
                     </p>
-                    <p className="flex items-center gap-2">
-                      <Phone className="w-4 h-4 text-primary shrink-0" />
+                    <p className="flex items-center gap-1.5">
+                      <Phone className="w-3.5 h-3.5 text-primary shrink-0" />
                       {hospital.phone}
                     </p>
-                    <p className="flex items-center gap-2">
+                    <p className="flex items-center gap-1.5">
                       Category: <span className="font-medium text-foreground">{hospital.category}</span>
                     </p>
                   </div>
                 </div>
 
-                <div className="text-center md:text-right shrink-0">
-                  <div className="inline-flex items-center gap-2 bg-green-500/10 text-green-700 dark:text-green-400 border border-green-500/20 px-3 py-1 rounded-full text-xs font-medium">
-                    <CheckCircle size={14} />
+                <div className="text-center shrink-0">
+                  <div className="inline-flex items-center gap-1.5 bg-green-500/10 text-green-700 dark:text-green-400 border border-green-500/20 px-2.5 py-0.5 rounded-full text-[10px] font-medium">
+                    <CheckCircle size={12} />
                     {hospital.status?.toUpperCase() || "ACTIVE"}
                   </div>
-                  <p className="text-xs text-muted-foreground mt-2">
+                  <p className="text-[10px] text-muted-foreground mt-1.5">
                     Last Login: {hospital.lastLogin ? new Date(hospital.lastLogin).toLocaleString() : "Never"}
                   </p>
                 </div>
@@ -569,95 +562,95 @@ const HospitalDashboard = () => {
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-          <div className="bg-card border border-border rounded-xl p-5">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <Droplet className="w-4 h-4 text-primary" />
+        <div className="grid grid-cols-2 gap-3">
+          <div className="bg-card border border-border rounded-lg p-3">
+            <div className="flex items-center gap-2 mb-1.5">
+              <div className="p-1.5 rounded-lg bg-primary/10">
+                <Droplet className="w-3.5 h-3.5 text-primary" />
               </div>
-              <span className="text-xs font-medium text-muted-foreground">Total Blood Units</span>
+              <span className="text-[10px] font-medium text-muted-foreground">Total Units</span>
             </div>
-            <div className="text-2xl font-bold tracking-tight text-foreground">{stats.totalUnits}</div>
+            <div className="text-lg font-bold tracking-tight text-foreground">{stats.totalUnits}</div>
           </div>
-          <div className="bg-card border border-border rounded-xl p-5">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 rounded-lg bg-blue-500/10">
-                <Activity className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+          <div className="bg-card border border-border rounded-lg p-3">
+            <div className="flex items-center gap-2 mb-1.5">
+              <div className="p-1.5 rounded-lg bg-blue-500/10">
+                <Activity className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
               </div>
-              <span className="text-xs font-medium text-muted-foreground">Blood Types</span>
+              <span className="text-[10px] font-medium text-muted-foreground">Blood Types</span>
             </div>
-            <div className="text-2xl font-bold tracking-tight text-foreground">{bloodStock.length}</div>
+            <div className="text-lg font-bold tracking-tight text-foreground">{bloodStock.length}</div>
           </div>
-          <div className="bg-card border border-border rounded-xl p-5">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 rounded-lg bg-amber-500/10">
-                <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+          <div className="bg-card border border-border rounded-lg p-3">
+            <div className="flex items-center gap-2 mb-1.5">
+              <div className="p-1.5 rounded-lg bg-amber-500/10">
+                <AlertTriangle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
               </div>
-              <span className="text-xs font-medium text-muted-foreground">Low Stock</span>
+              <span className="text-[10px] font-medium text-muted-foreground">Low Stock</span>
             </div>
-            <div className="text-2xl font-bold tracking-tight text-foreground">{stats.lowStock}</div>
+            <div className="text-lg font-bold tracking-tight text-foreground">{stats.lowStock}</div>
           </div>
-          <div className="bg-card border border-border rounded-xl p-5">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 rounded-lg bg-destructive/10">
-                <Clock className="w-4 h-4 text-destructive" />
+          <div className="bg-card border border-border rounded-lg p-3">
+            <div className="flex items-center gap-2 mb-1.5">
+              <div className="p-1.5 rounded-lg bg-destructive/10">
+                <Clock className="w-3.5 h-3.5 text-destructive" />
               </div>
-              <span className="text-xs font-medium text-muted-foreground">Expiring Soon</span>
+              <span className="text-[10px] font-medium text-muted-foreground">Expiring Soon</span>
             </div>
-            <div className="text-2xl font-bold tracking-tight text-foreground">{stats.expiringSoon}</div>
+            <div className="text-lg font-bold tracking-tight text-foreground">{stats.expiringSoon}</div>
           </div>
-          <div className="bg-card border border-border rounded-xl p-5">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 rounded-lg bg-purple-500/10">
-                <TrendingUp className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+          <div className="bg-card border border-border rounded-lg p-3">
+            <div className="flex items-center gap-2 mb-1.5">
+              <div className="p-1.5 rounded-lg bg-purple-500/10">
+                <TrendingUp className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
               </div>
-              <span className="text-xs font-medium text-muted-foreground">Pending Requests</span>
+              <span className="text-[10px] font-medium text-muted-foreground">Pending Requests</span>
             </div>
-            <div className="text-2xl font-bold tracking-tight text-foreground">{stats.pendingRequests}</div>
+            <div className="text-lg font-bold tracking-tight text-foreground">{stats.pendingRequests}</div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 gap-4">
           {/* Blood Inventory Overview */}
-          <div className="bg-card border border-border rounded-xl p-6">
-            <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-              <Droplet className="w-5 h-5 text-primary" />
+          <div className="bg-card border border-border rounded-lg p-4">
+            <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-1.5">
+              <Droplet className="w-4 h-4 text-primary" />
               Blood Inventory
             </h3>
 
             {bloodStock.length === 0 ? (
-              <div className="text-center py-8">
-                <Droplet className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
-                <p className="text-sm text-muted-foreground mb-4">No blood inventory available</p>
-                <button onClick={() => navigate("/hospital/request-blood")} className="btn-advanced">
+              <div className="text-center py-6">
+                <Droplet className="w-8 h-8 text-muted-foreground/30 mx-auto mb-2" />
+                <p className="text-xs text-muted-foreground mb-3">No blood inventory available</p>
+                <button onClick={() => navigate("/hospital/request-blood")} className="btn-advanced text-xs">
                   Request Blood
                 </button>
               </div>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-2.5">
                 {bloodStock.slice(0, 6).map((item) => {
                   const status = getStockStatus(item.quantity, item.expiryDate);
                   const StatusIcon = status.icon;
 
                   return (
-                    <div key={item._id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg border border-border hover:bg-muted transition-colors">
-                      <div className="flex items-center gap-3">
-                        <span className={`px-2.5 py-1 rounded-full text-xs font-medium border ${getBloodTypeColor(item.bloodGroup)}`}>
+                    <div key={item._id} className="flex items-center justify-between p-2.5 bg-muted/50 rounded-lg border border-border hover:bg-muted transition-colors">
+                      <div className="flex items-center gap-2.5">
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium border ${getBloodTypeColor(item.bloodGroup)}`}>
                           {item.bloodGroup}
                         </span>
-                        <span className="text-base font-semibold text-foreground">{item.quantity} units</span>
+                        <span className="text-sm font-semibold text-foreground">{item.quantity} units</span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <StatusIcon size={14} className={status.color.split(" ")[1]} />
-                        <span className="text-xs text-muted-foreground capitalize">{status.status}</span>
+                      <div className="flex items-center gap-1.5">
+                        <StatusIcon size={12} className={status.color.split(" ")[1]} />
+                        <span className="text-[10px] text-muted-foreground capitalize">{status.status}</span>
                       </div>
                     </div>
                   );
                 })}
 
                 {bloodStock.length > 6 && (
-                  <button onClick={() => navigate("/hospital/blood-stock")} className="btn-ghost w-full justify-center">
-                    View All {bloodStock.length} Blood Types
+                  <button onClick={() => navigate("/hospital/blood-stock")} className="btn-ghost w-full justify-center text-xs">
+                    View All {bloodStock.length} Types
                   </button>
                 )}
               </div>
@@ -665,19 +658,19 @@ const HospitalDashboard = () => {
           </div>
 
           {/* Recent Requests */}
-          <div className="bg-card border border-border rounded-xl p-6">
-            <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-              <Activity className="w-5 h-5 text-primary" />
-              Recent Blood Requests
+          <div className="bg-card border border-border rounded-lg p-4">
+            <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-1.5">
+              <Activity className="w-4 h-4 text-primary" />
+              Recent Requests
             </h3>
 
             {requests.length === 0 ? (
-              <div className="text-center py-8">
-                <Activity className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
-                <p className="text-sm text-muted-foreground">No blood requests yet</p>
+              <div className="text-center py-6">
+                <Activity className="w-8 h-8 text-muted-foreground/30 mx-auto mb-2" />
+                <p className="text-xs text-muted-foreground">No blood requests yet</p>
               </div>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-2.5">
                 {requests.slice(0, 5).map((request) => {
                   const statusColor = 
                     request.status === "accepted" ? "bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20" :
@@ -685,14 +678,14 @@ const HospitalDashboard = () => {
                     "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20";
 
                   return (
-                    <div key={request._id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg border border-border hover:bg-muted transition-colors">
+                    <div key={request._id} className="flex items-center justify-between p-2.5 bg-muted/50 rounded-lg border border-border hover:bg-muted transition-colors">
                       <div>
                         <div className="font-medium text-foreground text-sm">{request.bloodType}</div>
-                        <div className="text-xs text-muted-foreground mt-0.5">
+                        <div className="text-[10px] text-muted-foreground mt-0.5">
                           {request.units} units • {request.labId?.name || "Unknown Lab"}
                         </div>
                       </div>
-                      <span className={`px-2.5 py-1 rounded-full text-xs font-medium border capitalize ${statusColor}`}>
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium border capitalize ${statusColor}`}>
                         {request.status}
                       </span>
                     </div>
@@ -700,7 +693,7 @@ const HospitalDashboard = () => {
                 })}
 
                 {requests.length > 5 && (
-                  <button onClick={() => navigate("/hospital/request-history")} className="btn-ghost w-full justify-center">
+                  <button onClick={() => navigate("/hospital/request-history")} className="btn-ghost w-full justify-center text-xs">
                     View All {requests.length} Requests
                   </button>
                 )}
@@ -709,25 +702,25 @@ const HospitalDashboard = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 gap-4">
           {/* Login History */}
-          <div className="bg-card border border-border rounded-xl p-6">
-            <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-              <Clock className="w-5 h-5 text-primary" />
+          <div className="bg-card border border-border rounded-lg p-4">
+            <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-1.5">
+              <Clock className="w-4 h-4 text-primary" />
               Recent Logins
             </h3>
 
             {loginHistory.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-4">No login history available</p>
+              <p className="text-xs text-muted-foreground text-center py-3">No login history</p>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-2.5">
                 {loginHistory.map((login, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg border border-border">
+                  <div key={index} className="flex items-center justify-between p-2.5 bg-muted/50 rounded-lg border border-border">
                     <div>
                       <div className="font-medium text-foreground text-sm">{login.ip}</div>
-                      <div className="text-xs text-muted-foreground mt-0.5">{new Date(login.date).toLocaleString()}</div>
+                      <div className="text-[10px] text-muted-foreground mt-0.5">{new Date(login.date).toLocaleString()}</div>
                     </div>
-                    <CheckCircle size={16} className="text-green-600 dark:text-green-400 shrink-0" />
+                    <CheckCircle size={14} className="text-green-600 dark:text-green-400 shrink-0" />
                   </div>
                 ))}
               </div>
@@ -735,27 +728,27 @@ const HospitalDashboard = () => {
           </div>
 
           {/* Recent Activity */}
-          <div className="bg-card border border-border rounded-xl p-6">
-            <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-              <History className="w-5 h-5 text-primary" />
+          <div className="bg-card border border-border rounded-lg p-4">
+            <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-1.5">
+              <History className="w-4 h-4 text-primary" />
               Recent Activity
             </h3>
 
             {recentActivity.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-4">No recent activity</p>
+              <p className="text-xs text-muted-foreground text-center py-3">No recent activity</p>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-2.5">
                 {recentActivity.map((activity, index) => (
-                  <div key={index} className="p-3 bg-muted/50 rounded-lg border border-border">
+                  <div key={index} className="p-2.5 bg-muted/50 rounded-lg border border-border">
                     <div className="flex items-center justify-between mb-1">
                       <span className="font-medium text-foreground text-sm capitalize">
                         {activity.eventType?.toLowerCase().replace("_", " ")}
                       </span>
-                      <span className="text-xs text-muted-foreground">
+                      <span className="text-[10px] text-muted-foreground">
                         {new Date(activity.date).toLocaleDateString()}
                       </span>
                     </div>
-                    <p className="text-xs text-muted-foreground">{activity.description}</p>
+                    <p className="text-[10px] text-muted-foreground">{activity.description}</p>
                   </div>
                 ))}
               </div>

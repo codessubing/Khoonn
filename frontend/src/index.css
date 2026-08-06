@@ -4,6 +4,7 @@
 
 * {
   font-family: "Inter", sans-serif;
+  -webkit-tap-highlight-color: transparent; /* Remove tap highlight on mobile */
 }
 
 html {
@@ -130,12 +131,36 @@ html {
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
+/* Mobile-First Responsive Adjustments */
+@media (max-width: 768px) {
+  html {
+    font-size: 14px; /* Slightly larger text for mobile readability */
+  }
+  
+  .btn-advanced {
+    padding: 0.875rem 1.25rem; /* Larger touch targets */
+    min-height: 44px; /* iOS minimum touch target */
+  }
+  
+  .input-minimal {
+    padding: 0.75rem 1rem; /* Larger input areas */
+    font-size: 1rem; /* Better readability on small screens */
+  }
+  
+  .navbar-minimal {
+    padding: 0.75rem 1rem; /* Better mobile navigation */
+  }
+}
+
 /* Form Elements - Accessible Focus States */
 input,
 textarea,
 select,
 button {
   outline: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
 }
 
 input:focus-visible,
@@ -147,7 +172,18 @@ button:focus-visible {
   border-radius: var(--radius);
 }
 
-/* Advanced Minimal Components */
+/* Prevent iOS zoom on input focus */
+input:focus,
+textarea:focus,
+select:focus {
+  font-size: 16px;
+}
+
+/* Mobile Touch Targets */
+.touch-target {
+  min-height: 44px;
+  min-width: 44px;
+}
 
 /* Glassmorphic Navbar */
 .navbar-minimal {
@@ -175,6 +211,7 @@ button:focus-visible {
   border: 1px solid transparent;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  min-height: 44px; /* Mobile-friendly touch target */
 }
 
 .btn-advanced:hover {
@@ -208,6 +245,7 @@ button:focus-visible {
   color: var(--foreground);
   font-size: 0.875rem;
   transition: border-color 0.2s, box-shadow 0.2s;
+  min-height: 44px; /* Mobile-friendly */
 }
 
 .input-minimal::placeholder {
@@ -228,4 +266,51 @@ html {
 ::selection {
   background-color: color-mix(in oklch, var(--primary) 30%, transparent);
   color: var(--foreground);
+}
+
+/* Mobile-Specific Optimizations */
+@media (max-width: 768px) {
+  .container {
+    max-width: 100% !important;
+    padding: 0.5rem !important;
+  }
+  
+  .p-6 {
+    padding: 1rem !important;
+  }
+  
+  .h-96 {
+    height: 300px !important; /* Smaller maps on mobile */
+  }
+  
+  .text-2xl {
+    font-size: 1.5rem !important;
+  }
+  
+  .text-lg {
+    font-size: 1.125rem !important;
+  }
+  
+  /* Prevent horizontal scroll */
+  * {
+    max-inline-size: 100%;
+    overflow-wrap: break-word;
+  }
+  
+  /* Better map container for mobile */
+  .leaflet-container {
+    min-height: 300px;
+    touch-action: pan-y pinch-zoom; /* Better touch handling */
+  }
+}
+
+/* Tablet adjustments */
+@media (min-width: 768px) and (max-width: 1024px) {
+  html {
+    font-size: 15px;
+  }
+  
+  .h-96 {
+    height: 400px;
+  }
 }
