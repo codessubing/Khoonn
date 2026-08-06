@@ -1,4 +1,4 @@
-// frontend/src/App.jsx (Updated with optional campId parameter)
+// frontend/src/App.jsx (Ensuring single Router instance)
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { Suspense, lazy } from "react";
 
@@ -63,6 +63,7 @@ const PageLoader = () => (
 );
 
 function App() {
+  // ✅ CORRECT: Only one Router wrapper at the top level
   return (
     <Router>
       <Suspense fallback={<PageLoader />}>

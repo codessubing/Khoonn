@@ -1,7 +1,9 @@
+// frontend/src/components/Header.jsx
 import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
+import { Heart, Menu, X } from "lucide-react"; // Added icons
 
-const WEBSITE_NAME = import.meta.env.VITE_WEBSITE_NAME;
+const WEBSITE_NAME = import.meta.env.VITE_WEBSITE_NAME || "Kyuu Khoon";
 
 export default function Header({ currentUser }) {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -28,6 +30,7 @@ export default function Header({ currentUser }) {
     { name: "Home", path: "/" },
     { name: "About", path: "/about" },
     { name: "Contact", path: "/contact" },
+    { name: "Blood Availability", path: "/blood-availability" },
   ];
 
   const authLinks = currentUser
@@ -60,22 +63,20 @@ export default function Header({ currentUser }) {
             to="/" 
             className="flex items-center gap-2.5 group"
           >
-            <div className="w-9 h-9 flex items-center justify-center rounded-xl bg-gradient-to-br from-red-500 to-red-600 shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-105">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="currentColor"
+            <div className="relative w-9 h-9 flex items-center justify-center rounded-xl bg-gradient-to-br from-red-500 to-red-600 shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-105">
+              <Heart
                 className="w-4 h-4 text-white"
-              >
-                <path d="M12 2C12 2 6 8 6 12a6 6 0 0012 0c0-4-6-10-6-10z" />
-              </svg>
+                fill="currentColor"
+              />
+              {/* Animated pulse effect */}
+              <div className="absolute inset-0 rounded-xl border-2 border-red-500 animate-ping opacity-20"></div>
             </div>
-            <div className="flex flex-col">
-              <h1 className="text-base font-bold text-gray-900 group-hover:text-red-600 transition-colors duration-200">
+            <div className="flex flex-col min-w-0">
+              <h1 className="text-base font-bold text-gray-900 group-hover:text-red-600 transition-colors duration-200 truncate">
                 {WEBSITE_NAME}
               </h1>
-              <p className="text-[10px] text-gray-500 -mt-0.5 font-medium leading-tight">
-                Blood Management
+              <p className="text-[10px] text-gray-500 -mt-0.5 font-medium leading-tight truncate">
+                Be a Hero, Save Lives
               </p>
             </div>
           </Link>
@@ -127,17 +128,11 @@ export default function Header({ currentUser }) {
             }`}
             aria-label="Toggle menu"
           >
-            <div className="relative w-5 h-5">
-              <span className={`absolute top-1/2 left-1/2 w-4 h-0.5 bg-current transform -translate-x-1/2 -translate-y-1/2 transition-all duration-200 ${
-                mobileOpen ? "rotate-45" : "-translate-y-1"
-              }`}></span>
-              <span className={`absolute top-1/2 left-1/2 w-4 h-0.5 bg-current transform -translate-x-1/2 -translate-y-1/2 transition-all duration-200 ${
-                mobileOpen ? "opacity-0" : "opacity-100"
-              }`}></span>
-              <span className={`absolute top-1/2 left-1/2 w-4 h-0.5 bg-current transform -translate-x-1/2 -translate-y-1/2 transition-all duration-200 ${
-                mobileOpen ? "-rotate-45" : "translate-y-1"
-              }`}></span>
-            </div>
+            {mobileOpen ? (
+              <X size={20} />
+            ) : (
+              <Menu size={20} />
+            )}
           </button>
         </div>
 

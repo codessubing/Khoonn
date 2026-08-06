@@ -1,4 +1,5 @@
-import { defineConfig } from 'vite'
+// frontend/vite.config.js
+import { defineConfig } from 'vite' // Use defineConfig helper for better intellisense/type safety
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
