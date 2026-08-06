@@ -1,4 +1,4 @@
-// frontend/src/pages/hospital/HospitalDashboard.jsx
+// frontend/src/pages/hospital/HospitalDashboard.jsx (Updated with Live Donor Map Quick Action)
 import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom"; // ✅ Added Link
 import axios from "axios";
@@ -6,7 +6,7 @@ import { toast } from "react-hot-toast";
 import {
   Building2, MapPin, Phone, CalendarDays, Activity, Droplet,
   Clock, History, Users, AlertTriangle, CheckCircle, TrendingUp,
-  RefreshCw, Loader2, Navigation, Search, User, X, ChevronDown, ChevronUp
+  RefreshCw, Loader2, Navigation, Search, User, X, ChevronDown, ChevronUp, Map
 } from "lucide-react";
 
 // ✅ PRODUCTION FIX: Dynamic API base URL
@@ -466,6 +466,64 @@ const HospitalDashboard = () => {
               )}
             </div>
           )}
+        </div>
+
+        {/* ✅ NEW: Quick Actions Section for Hospital */}
+        <div className="bg-card border border-border rounded-xl p-6">
+          <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+            <Activity className="w-5 h-5 text-primary" />
+            Quick Actions
+          </h2>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Link to="/hospital/live-donors" className="block">
+              <div className="p-4 rounded-xl border border-border bg-card hover:bg-muted text-left transition-colors group">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="p-2 bg-primary/10 text-primary rounded-lg group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                    <Map className="w-4 h-4" />
+                  </div>
+                  <h4 className="font-semibold text-foreground">Live Donor Map</h4>
+                </div>
+                <p className="text-sm text-muted-foreground">Track donors in real-time</p>
+              </div>
+            </Link>
+            
+            <Link to="/hospital/request-blood" className="block">
+              <div className="p-4 rounded-xl border border-border bg-card hover:bg-muted text-left transition-colors group">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="p-2 bg-green-500/10 text-green-600 dark:text-green-400 rounded-lg group-hover:bg-green-600 group-hover:text-white transition-colors">
+                    <Droplet className="w-4 h-4" />
+                  </div>
+                  <h4 className="font-semibold text-foreground">Request Blood</h4>
+                </div>
+                <p className="text-sm text-muted-foreground">Order blood units</p>
+              </div>
+            </Link>
+            
+            <Link to="/hospital/donors" className="block">
+              <div className="p-4 rounded-xl border border-border bg-card hover:bg-muted text-left transition-colors group">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="p-2 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-lg group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                    <Users className="w-4 h-4" />
+                  </div>
+                  <h4 className="font-semibold text-foreground">Donor Directory</h4>
+                </div>
+                <p className="text-sm text-muted-foreground">View all donors</p>
+              </div>
+            </Link>
+            
+            <Link to="/hospital/blood-requests" className="block">
+              <div className="p-4 rounded-xl border border-border bg-card hover:bg-muted text-left transition-colors group">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="p-2 bg-purple-500/10 text-purple-600 dark:text-purple-400 rounded-lg group-hover:bg-purple-600 group-hover:text-white transition-colors">
+                    <TrendingUp className="w-4 h-4" />
+                  </div>
+                  <h4 className="font-semibold text-foreground">Blood Requests</h4>
+                </div>
+                <p className="text-sm text-muted-foreground">View pending requests</p>
+              </div>
+            </Link>
+          </div>
         </div>
 
         {/* Hospital Profile Card */}

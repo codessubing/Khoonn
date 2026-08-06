@@ -1,9 +1,11 @@
+// frontend/src/pages/donor/DonorDashboard.jsx (Updated with Live Map Quick Action)
 import React, { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import axios from "axios";
 import {
   Droplet, Calendar, Users, Activity, Clock, MapPin, Phone, Mail,
   User, Shield, Award, Heart, TrendingUp, RefreshCw, AlertCircle,
-  Download, Share2,
+  Download, Share2, Map,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 
@@ -271,12 +273,15 @@ const DonorDashboard = () => {
               description="Share your impact with others"
               onClick={() => toast.success("Share your life-saving journey!")}
             />
-            <ActionCard
-              icon={<Calendar className="w-5 h-5" />}
-              title="Schedule Donation"
-              description="Book your next donation"
-              onClick={() => toast.success("Find nearby blood donation camps!")}
-            />
+            {/* ✅ NEW: Live Map Quick Action */}
+            <Link to="/donor/live-map" className="block">
+              <ActionCard
+                icon={<Map className="w-5 h-5" />}
+                title="Live Map"
+                description="Find nearby blood camps"
+                onClick={() => {}} // Handled by Link wrapper
+              />
+            </Link>
             <ActionCard
               icon={<Users className="w-5 h-5" />}
               title="Invite Friends"

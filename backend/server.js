@@ -25,8 +25,8 @@ import bloodLabRoutes from "./routes/bloodLabRoutes.js";
 import hospitalRoutes from "./routes/hospitalRoutes.js";
 import contactRoutes from "./routes/contactRoutes.js";
 import bloodAvailabilityRoutes from "./routes/bloodAvailability.js";
-import campRoutes, { setSocketIO as setCampSocketIO } from "./routes/campRoutes.js"; // ✅ Added for camps
-import transitRoutes, { setSocketIO as setTransitSocketIO } from "./routes/transitRoutes.js"; // ✅ Added for transit
+import campRoutes, { setSocketIO as setCampSocketIO } from "./routes/campRoutes.js"; 
+import transitRoutes, { setSocketIO as setTransitSocketIO } from "./routes/transitRoutes.js"; 
 import liveTrackingRoutes from './routes/liveTrackingRoutes.js';
 
 const app = express();
@@ -56,8 +56,8 @@ app.use("/api/contact", contactRoutes);
 app.use("/api/emergency", emergencyRoutes);
 app.use("/api/blood", bloodAvailabilityRoutes);
 app.use("/api/camps", campRoutes);
-app.use("/api/transit", transitRoutes); // ✅ Mounted transit routes
-app.use('/api/live', liveTrackingRoutes); // ✅ NEW: Live tracking endpoints
+app.use("/api/transit", transitRoutes); 
+app.use('/api/live', liveTrackingRoutes); 
 
 // ✅ HEALTH CHECK ENDPOINT - For debugging
 app.get('/health', (req, res) => {
@@ -105,13 +105,17 @@ const io = new Server(httpServer, {
     ],
     methods: ["GET", "POST"],
     credentials: true
-  }
+  },
+  // ✅ PRODUCTION FIX: Allow polling fallback and increase timeouts for Render cold starts
+  transports: ["websocket", "polling"], 
+  pingTimeout: 60000,   
+  pingInterval: 25000   
 });
 
 // Make io accessible to routes via app.locals AND direct injection
 app.locals.io = io;
-setCampSocketIO(io);      // ✅ Inject IO into camp routes
-setTransitSocketIO(io);   // ✅ Inject IO into transit routes
+setCampSocketIO(io);      
+setTransitSocketIO(io);   
 
 io.on("connection", (socket) => {
   console.log(`🔌 Client connected: ${socket.id}`);
@@ -132,8 +136,9 @@ app.use((req, res, next) => {
   next();
 });
 
-// ✅ FINAL 404 HANDLER - More informative than before
-app.use('*', (req, res) => {
+// ✅ FINAL 404 HANDLER
+// ❌ REMOVED the '*' to fix the path-to-regexp error
+app.use((req, res) => {
   console.log(`404 - Unhandled route: ${req.method} ${req.originalUrl}`);
   res.status(404).json({ 
     error: 'Route not found',

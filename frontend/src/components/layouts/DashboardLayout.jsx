@@ -1,9 +1,10 @@
+// frontend/src/components/DashboardLayout.jsx (Updated with Live Map links)
 import { useState, useEffect } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import {
   LogOut, Menu, X, User, BarChart3, CheckCircle, Droplet,
   ClipboardList, History, Building, Shield, Calendar, TestTube,
-  ChevronLeft, ChevronRight, Loader2, ClipboardPlus, Ambulance,
+  ChevronLeft, ChevronRight, Loader2, ClipboardPlus, Ambulance, Map
 } from "lucide-react";
 
 // ✅ PRODUCTION FIX: Dynamic API base URL
@@ -31,6 +32,8 @@ const DashboardLayout = ({ userRole = "donor" }) => {
         { path: "/donor/profile", label: "My Profile", icon: User },
         { path: "/donor/history", label: "Donation History", icon: History },
         { path: "/donor/camps", label: "Blood Camps", icon: Calendar },
+        // ✅ NEW: Live Map Link for Donors
+        { path: "/donor/live-map", label: "Live Map", icon: Map },
       ],
     },
     hospital: {
@@ -49,6 +52,8 @@ const DashboardLayout = ({ userRole = "donor" }) => {
         
         { path: "/hospital/inventory", label: "Inventory", icon: Droplet },
         { path: "/hospital/donors", label: "Donors", icon: User },
+        // ✅ NEW: Live Map Link for Hospitals
+        { path: "/hospital/live-donors", label: "Live Donors", icon: Map },
       ],
     },
     blood_lab: {
@@ -63,6 +68,8 @@ const DashboardLayout = ({ userRole = "donor" }) => {
         { path: "/lab/camps", label: "Camps", icon: Calendar },
         { path: "/lab/requests", label: "Requests", icon: ClipboardList },
         { path: "/lab/profile", label: "Profile", icon: CheckCircle },
+        // ✅ NEW: Live Map Link for Labs
+        { path: "/lab/live-donors", label: "Live Donors", icon: Map },
       ],
     },
     admin: {
@@ -79,6 +86,8 @@ const DashboardLayout = ({ userRole = "donor" }) => {
     },
   };
 
+  // ... rest of your existing code remains the same ...
+  
   useEffect(() => {
     const fetchUserData = async () => {
       setIsLoading(true);
@@ -229,8 +238,8 @@ const DashboardLayout = ({ userRole = "donor" }) => {
             sidebarOpen ? "translate-x-0" : "-translate-x-full"
           } lg:translate-x-0 fixed lg:static inset-y-0 left-0 z-40 ${
             sidebarCollapsed ? "w-16" : "w-64"
-          } bg-card border-r border-border transition-all duration-300 flex flex-col`}
-        >
+          } bg-card border-r border-border transition-all duration-300 flex flex-col`
+          }>
           <div className="flex items-center justify-between p-4 border-b border-border">
             {!sidebarCollapsed && (
               <div className="flex items-center gap-3">

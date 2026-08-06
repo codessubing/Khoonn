@@ -1,3 +1,4 @@
+// frontend/src/App.jsx (Updated with optional campId parameter)
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { Suspense, lazy } from "react";
 
@@ -105,7 +106,9 @@ function App() {
             <Route path="inventory" element={<HospitalBloodStock />} />
             <Route path="donors" element={<DonorDirectory />} />
             <Route path="camps/:campId/transit" element={<CampTransitMap />} /> {/* ✅ Staff Transit View */}
-            <Route path="live-donors/:campId" element={<LiveDonorMap />} /> {/* ✅ NEW: Hospital Live Donor Map */}
+            {/* ✅ FIXED: Made campId optional with ? */}
+            <Route path="live-donors" element={<LiveDonorMap />} />
+            <Route path="live-donors/:campId" element={<LiveDonorMap />} />
           </Route>
         
           {/* Blood Lab Dashboard */}
@@ -121,7 +124,9 @@ function App() {
             <Route path="profile" element={<LabProfile />} />
             <Route path="requests" element={<LabManageRequests />} />
             <Route path="donor" element={<BloodLabDonor />} />
-            <Route path="live-donors/:campId" element={<LiveDonorMap />} /> {/* ✅ NEW: Lab Live Donor Map */}
+            {/* ✅ FIXED: Made campId optional with ? */}
+            <Route path="live-donors" element={<LiveDonorMap />} />
+            <Route path="live-donors/:campId" element={<LiveDonorMap />} />
           </Route>
           
           {/* Admin Dashboard */}

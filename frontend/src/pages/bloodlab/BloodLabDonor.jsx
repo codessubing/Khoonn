@@ -1,8 +1,10 @@
+// frontend/src/pages/bloodlab/BloodLabDonor.jsx (Updated with Live Map Quick Action)
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import axios from "axios";
 import { toast } from "react-hot-toast";
 import { 
-  Search, User, Phone, Mail, Droplet, Calendar, History, Plus, Loader2, X 
+  Search, User, Phone, Mail, Droplet, Calendar, History, Plus, Loader2, X, Map
 } from "lucide-react";
 
 // ✅ PRODUCTION FIX: Dynamic API base URL
@@ -189,6 +191,58 @@ const BloodLabDonor = () => {
               <span className="text-xs font-medium text-muted-foreground">Total Donations</span>
             </div>
             <div className="text-2xl font-bold tracking-tight text-foreground">{stats.total}</div>
+          </div>
+        </div>
+
+        {/* ✅ NEW: Quick Actions Section for Blood Lab */}
+        <div className="bg-card border border-border rounded-xl p-6">
+          <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+            <Droplet className="w-5 h-5 text-primary" />
+            Quick Actions
+          </h2>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Link to="/lab/live-donors" className="block">
+              <div className="p-4 rounded-xl border border-border bg-card hover:bg-muted text-left transition-colors group">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="p-2 bg-primary/10 text-primary rounded-lg group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                    <Map className="w-4 h-4" />
+                  </div>
+                  <h4 className="font-semibold text-foreground">Live Donor Map</h4>
+                </div>
+                <p className="text-sm text-muted-foreground">Track donors in real-time</p>
+              </div>
+            </Link>
+            
+            <div className="p-4 rounded-xl border border-border bg-card">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 bg-green-500/10 text-green-600 dark:text-green-400 rounded-lg">
+                  <Plus className="w-4 h-4" />
+                </div>
+                <h4 className="font-semibold text-foreground">Add Donor</h4>
+              </div>
+              <p className="text-sm text-muted-foreground">Manually add new donors</p>
+            </div>
+            
+            <div className="p-4 rounded-xl border border-border bg-card">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-lg">
+                  <History className="w-4 h-4" />
+                </div>
+                <h4 className="font-semibold text-foreground">View Reports</h4>
+              </div>
+              <p className="text-sm text-muted-foreground">Generate donor reports</p>
+            </div>
+            
+            <div className="p-4 rounded-xl border border-border bg-card">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 bg-purple-500/10 text-purple-600 dark:text-purple-400 rounded-lg">
+                  <Calendar className="w-4 h-4" />
+                </div>
+                <h4 className="font-semibold text-foreground">Schedule Events</h4>
+              </div>
+              <p className="text-sm text-muted-foreground">Plan future events</p>
+            </div>
           </div>
         </div>
 
